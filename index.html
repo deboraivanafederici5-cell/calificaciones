@@ -1,0 +1,1193 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ADEN · Gestión</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;color:#1a1a2e;background:#f0f2f5}
+.app{display:flex;height:100vh}
+.sidebar{width:215px;min-width:215px;background:#1F3864;display:flex;flex-direction:column;overflow-y:auto}
+.sidebar-logo{padding:18px 16px 10px;font-size:15px;font-weight:700;color:#fff;letter-spacing:.3px}
+.sidebar-logo span{color:#4da6ff}
+.nav-section{padding:6px 0;border-top:1px solid rgba(255,255,255,.08);margin-top:4px}
+.nav-section:first-of-type{border-top:none;margin-top:0}
+.nav-label{padding:6px 16px 2px;font-size:10px;font-weight:700;color:#4a6a94;letter-spacing:1px;text-transform:uppercase}
+.nav-btn{width:100%;text-align:left;padding:9px 16px;background:none;border:none;cursor:pointer;font-size:13px;color:#90aed4;transition:all .15s;display:flex;align-items:center;gap:9px;font-family:inherit}
+.nav-btn:hover{background:rgba(255,255,255,.07);color:#fff}
+.nav-btn.active{background:rgba(255,255,255,.13);color:#fff;font-weight:500;border-right:3px solid #4da6ff}
+.main{flex:1;overflow-y:auto;padding:24px 28px;background:#f0f2f5}
+.section{display:none}.section.active{display:block}
+.page-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px}
+.page-title{font-size:20px;font-weight:600;color:#1F3864}
+.page-sub{font-size:13px;color:#999;margin-top:2px}
+.card{background:#fff;border:1px solid #e4e7eb;border-radius:10px;padding:16px 20px;margin-bottom:14px}
+.card-title{font-size:11px;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:.7px;margin-bottom:12px}
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:14px}
+.kpi{background:#fff;border:1px solid #e4e7eb;border-radius:10px;padding:13px 16px}
+.kpi-label{font-size:11px;color:#999;margin-bottom:4px;font-weight:500}
+.kpi-value{font-size:22px;font-weight:700}
+.kpi-sub{font-size:11px;color:#bbb;margin-top:2px}
+.blue{color:#185FA5}.green{color:#0F6E56}.red{color:#993C1D}.amber{color:#854F0B}.navy{color:#1F3864}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;padding:9px 12px;font-weight:700;font-size:11px;color:#aaa;border-bottom:1px solid #eee;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap}
+td{padding:8px 12px;border-bottom:1px solid #f3f3f3;vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#fafbfc}
+.badge{display:inline-block;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:600;white-space:nowrap}
+.bg{background:#E2EFDA;color:#375623}.bb{background:#DEEAF1;color:#1F497D}
+.ba{background:#FFF2CC;color:#7D6608}.br{background:#FCE4D6;color:#9C0006}
+.bp{background:#EAD1F7;color:#660066}.bgr{background:#F1EFE8;color:#5F5E5A}
+.bt{background:#D6EEF2;color:#0F5460}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.form-grid.three{grid-template-columns:1fr 1fr 1fr}
+.form-full{grid-column:1/-1}
+.fg{display:flex;flex-direction:column;gap:4px}
+.fg label{font-size:12px;color:#666;font-weight:600}
+input,select,textarea{width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:7px;font-size:13px;font-family:inherit;background:#fff;color:#1a1a2e;outline:none;transition:border .15s}
+input:focus,select:focus{border-color:#2E75B6;box-shadow:0 0 0 3px rgba(46,117,182,.1)}
+input[readonly]{background:#f7f7f7;color:#999;cursor:default}
+.btn{padding:8px 18px;border-radius:7px;font-size:13px;cursor:pointer;font-family:inherit;font-weight:600;transition:all .15s;border:1px solid transparent}
+.btn-primary{background:#1F3864;color:#fff}.btn-primary:hover{background:#2E75B6}
+.btn-success{background:#2d6a4f;color:#fff}.btn-success:hover{background:#40916c}
+.btn-warning{background:#7D6608;color:#fff}.btn-warning:hover{background:#a08510}
+.btn-secondary{background:#fff;border-color:#ddd;color:#444}.btn-secondary:hover{background:#f5f5f5}
+.btn-sm{padding:4px 10px;font-size:12px}
+.actions{display:flex;gap:10px;margin-top:14px;padding-top:14px;border-top:1px solid #f0f0f0;align-items:center;flex-wrap:wrap}
+.filter-bar{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center}
+.filter-bar input,.filter-bar select{width:auto;flex:1;min-width:110px;max-width:200px}
+.table-wrap{overflow-x:auto}
+.spinner{display:inline-block;width:16px;height:16px;border:2px solid #ddd;border-top-color:#1F3864;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-row td,.empty-row td{text-align:center;padding:24px;color:#bbb;font-style:italic}
+.toast{position:fixed;bottom:22px;right:22px;background:#1F3864;color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;z-index:9999;opacity:0;transition:opacity .3s;pointer-events:none;box-shadow:0 4px 16px rgba(0,0,0,.2)}
+.toast.show{opacity:1}.toast.error{background:#993C1D}
+/* Dashboard filter bar */
+.dash-filters{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:16px;background:#fff;padding:12px 16px;border-radius:10px;border:1px solid #e4e7eb}
+.dash-filters label{font-size:12px;font-weight:600;color:#888;white-space:nowrap}
+.dash-filters select{width:auto;min-width:120px}
+/* Chart tabs */
+.chart-tabs{display:flex;gap:6px;margin-bottom:14px}
+.chart-tab{padding:5px 14px;border-radius:99px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid #ddd;background:#fff;color:#888;font-family:inherit;transition:all .15s}
+.chart-tab.active{background:#1F3864;color:#fff;border-color:#1F3864}
+/* Assign panels */
+.assign-header{background:#f7f9fc;border:1px solid #dce8f5;border-radius:10px;padding:14px 18px;margin-bottom:12px}
+.assign-controls{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap}
+.assign-controls .fg{flex:1;min-width:120px}
+.assign-id-input{font-size:15px!important;font-weight:600;border:2px solid #2E75B6!important}
+.sel-info{font-size:12px;color:#888;white-space:nowrap}
+.sel-info strong{color:#1F3864}
+.cb-col{width:36px;text-align:center!important}
+input[type=checkbox]{width:15px;height:15px;cursor:pointer;accent-color:#1F3864}
+.select-all-row{background:#f7f9fc}
+.status-bar{display:flex;gap:12px;padding:8px 14px;border-top:1px solid #f0f0f0;font-size:12px;color:#999;flex-wrap:wrap}
+.status-bar strong{color:#1F3864}
+/* Autocomplete */
+.ac-wrap{position:relative}
+.ac-list{position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid #ddd;border-radius:7px;box-shadow:0 4px 16px rgba(0,0,0,.1);z-index:100;max-height:200px;overflow-y:auto;display:none}
+.ac-list.open{display:block}
+.ac-item{padding:9px 12px;cursor:pointer;font-size:13px;border-bottom:1px solid #f5f5f5;transition:background .1s}
+.ac-item:last-child{border-bottom:none}
+.ac-item:hover,.ac-item.focused{background:#f0f5ff}
+.ac-item .ac-id{font-size:11px;color:#aaa;font-family:monospace}
+/* month table */
+.month-table th{text-align:right}.month-table th:first-child{text-align:left}
+.month-table td{text-align:right}.month-table td:first-child{text-align:left;font-weight:600;color:#1F3864}
+.month-table .total-row td{font-weight:700;background:#f0f4f9}
+.muted{color:#ccc}
+.diff-ok{color:#0F6E56;font-weight:600}.diff-bad{color:#993C1D;font-weight:600}.diff-warn{color:#854F0B;font-weight:600}
+.tag{font-size:11px;color:#999;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+</style>
+</head>
+<body>
+<div class="app">
+<nav class="sidebar">
+  <div class="sidebar-logo">ADEN <span>·</span> Gestión</div>
+  <div class="nav-section">
+    <div class="nav-label">Inicio</div>
+    <button class="nav-btn active" onclick="nav('dashboard',this)">📊 &nbsp;Dashboard</button>
+    <button class="nav-btn" onclick="nav('registro',this)">📋 &nbsp;Registro</button>
+    <button class="nav-btn" onclick="nav('nuevo',this)">＋ &nbsp;Nuevo evento</button>
+  </div>
+  <div class="nav-section">
+    <div class="nav-label">Liquidaciones</div>
+    <button class="nav-btn" onclick="nav('asignar-op',this)">🧾 &nbsp;Asignar OP</button>
+    <button class="nav-btn" onclick="nav('asignar-pago',this)">💰 &nbsp;Asignar Pago_ID</button>
+  </div>
+  <div class="nav-section">
+    <div class="nav-label">Historial</div>
+    <button class="nav-btn" onclick="nav('consultar',this)">🔍 &nbsp;Consultar</button>
+    <button class="nav-btn" onclick="nav('ops',this)">📁 &nbsp;OPs</button>
+    <button class="nav-btn" onclick="nav('pagos',this)">📁 &nbsp;Pagos</button>
+  </div>
+</nav>
+
+<main class="main">
+
+<!-- ═══════════════════ DASHBOARD ═══════════════════ -->
+<div class="section active" id="sec-dashboard">
+  <div class="page-header">
+    <div><div class="page-title">Dashboard</div><div class="page-sub">Resumen financiero y evolución académica</div></div>
+  </div>
+
+  <!-- Filters -->
+  <div class="dash-filters">
+    <label>Filtrar por mes:</label>
+    <select id="d-mes" onchange="renderDashboard()" style="min-width:150px">
+      <option value="">Todos los meses</option>
+    </select>
+    <label style="margin-left:8px">Programa:</label>
+    <select id="d-prog" onchange="renderDashboard()">
+      <option value="">Todos</option>
+      <option>TFM</option><option>OPER</option><option>RRHH</option>
+      <option>Consulta Sincrónica</option><option>Desarrollo Curso</option><option>Hub de impacto</option>
+    </select>
+    <button class="btn btn-secondary btn-sm" onclick="document.getElementById('d-mes').value='';document.getElementById('d-prog').value='';renderDashboard()">✕ Limpiar</button>
+  </div>
+
+  <!-- KPIs -->
+  <div class="kpi-grid">
+    <div class="kpi"><div class="kpi-label">Alumnos activos</div><div class="kpi-value blue" id="kpi-activos">—</div><div class="kpi-sub" id="kpi-activos-sub"></div></div>
+    <div class="kpi"><div class="kpi-label">Total estimado</div><div class="kpi-value navy" id="kpi-total">—</div><div class="kpi-sub" id="kpi-total-sub"></div></div>
+    <div class="kpi"><div class="kpi-label">Cobrado</div><div class="kpi-value green" id="kpi-cobrado">—</div></div>
+    <div class="kpi"><div class="kpi-label">En OP</div><div class="kpi-value amber" id="kpi-enop">—</div></div>
+    <div class="kpi"><div class="kpi-label">Sin OP</div><div class="kpi-value red" id="kpi-pendiente">—</div></div>
+  </div>
+
+  <!-- Monthly breakdown -->
+  <div class="card">
+    <div class="card-title">Liquidaciones por mes</div>
+    <div class="table-wrap">
+      <table class="month-table">
+        <thead><tr><th style="text-align:left">Mes</th><th>Matrículas</th><th>Egresos</th><th>Consultas</th><th>Cursos</th><th>Total</th><th>Estado pago</th></tr></thead>
+        <tbody id="month-tbody"><tr class="loading-row"><td colspan="7"><span class="spinner"></span></td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Chart -->
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+      <div class="card-title" style="margin-bottom:0">Evolución mensual — cantidad de alumnos</div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <div class="chart-tabs">
+          <button class="chart-tab active" onclick="setChartTipo('Matrícula',this)">Matrículas</button>
+          <button class="chart-tab" onclick="setChartTipo('Egreso',this)">Egresos</button>
+        </div>
+        <select id="chart-year" onchange="renderChart()" style="width:90px;font-size:12px;padding:5px 8px">
+          <option value="2026">2026</option><option value="2027">2027</option>
+        </select>
+      </div>
+    </div>
+    <canvas id="evolucion-chart" height="80"></canvas>
+  </div>
+</div>
+
+<!-- ═══════════════════ REGISTRO ═══════════════════ -->
+<div class="section" id="sec-registro">
+  <div class="page-header">
+    <div><div class="page-title">Registro de eventos</div><div class="page-sub">Todos los movimientos</div></div>
+  </div>
+  <div class="filter-bar">
+    <input type="text" id="rb-buscar" placeholder="Buscar nombre o ID…" oninput="renderRegistro()">
+    <select id="rb-mes" onchange="renderRegistro()"><option value="">Todos los meses</option></select>
+    <select id="rb-prog" onchange="renderRegistro()">
+      <option value="">Todos los programas</option>
+      <option>TFM</option><option>OPER</option><option>RRHH</option>
+      <option>Consulta Sincrónica</option><option>Desarrollo Curso</option><option>Hub de impacto</option>
+    </select>
+    <select id="rb-tipo" onchange="renderRegistro()">
+      <option value="">Todos los tipos</option>
+      <option>Matrícula</option><option>Egreso</option>
+      <option>Consulta Sincrónica</option><option>Desarrollo Curso</option>
+    </select>
+    <select id="rb-pago" onchange="renderRegistro()">
+      <option value="">Todo estado pago</option>
+      <option>Pendiente</option><option>En_OP</option><option>Pagado</option>
+    </select>
+  </div>
+  <div class="card" style="padding:0;overflow:hidden">
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>ID</th><th>Nombre</th><th>Prog.</th><th>Orient.</th><th>Tipo</th>
+          <th>Fecha</th><th>Est. alumno</th>
+          <th style="text-align:right">Valor</th><th>Pago</th>
+          <th>OP_ID</th><th>Pago_ID</th><th>Notas</th><th></th>
+        </tr></thead>
+        <tbody id="reg-tbody"><tr class="loading-row"><td colspan="13"><span class="spinner"></span></td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ NUEVO EVENTO ═══════════════════ -->
+<div class="section" id="sec-nuevo">
+  <div class="page-header">
+    <div><div class="page-title" id="form-title">Nuevo evento</div><div class="page-sub">Cargá una matrícula, egreso, consulta o curso</div></div>
+  </div>
+  <div class="card">
+    <div class="form-grid">
+      <!-- Autocomplete nombre -->
+      <div class="fg">
+        <label>Nombre *</label>
+        <div class="ac-wrap">
+          <input type="text" id="ev-nombre" placeholder="Escribí el nombre…" autocomplete="off" oninput="acNombre()" onkeydown="acKeyNombre(event)">
+          <div class="ac-list" id="ac-nombre-list"></div>
+        </div>
+      </div>
+      <!-- Autocomplete ID -->
+      <div class="fg">
+        <label>Alumno_ID</label>
+        <div class="ac-wrap">
+          <input type="text" id="ev-id" placeholder="S123456" autocomplete="off" oninput="acId()" onkeydown="acKeyId(event)">
+          <div class="ac-list" id="ac-id-list"></div>
+        </div>
+      </div>
+      <div class="fg">
+        <label>Programa *</label>
+        <select id="ev-prog" onchange="onProgChange()">
+          <option value="">— Seleccionar —</option>
+          <option>TFM</option><option>OPER</option><option>RRHH</option>
+          <option>Consulta Sincrónica</option><option>Desarrollo Curso</option><option>Hub de impacto</option>
+        </select>
+      </div>
+      <div class="fg" id="orient-group" style="display:none">
+        <label>Orientación TFM</label>
+        <select id="ev-orient">
+          <option value="">— Seleccionar —</option>
+          <option>FIN</option><option>EST</option><option>IB</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label>Tipo de evento *</label>
+        <select id="ev-tipo">
+          <option value="">— Seleccionar —</option>
+          <option>Matrícula</option><option>Egreso</option>
+          <option>Consulta Sincrónica</option><option>Desarrollo Curso</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label>Estado alumno</label>
+        <select id="ev-estalu"><option>Activo</option><option>Egresado</option><option>Abandonado</option></select>
+      </div>
+      <div class="fg"><label>Fecha del evento</label><input type="date" id="ev-fecha"></div>
+      <div class="fg"><label>Valor USD</label><input type="number" id="ev-valor" placeholder="Automático" step="0.5" readonly style="background:#f7f7f7;color:#999"></div>
+      <div class="fg"><label>Estado de pago (auto)</label><input type="text" id="ev-estpago" readonly style="font-weight:600"></div>
+      <div class="fg"><label>OP_ID (si ya la tenés)</label><input type="text" id="ev-op" placeholder="P00000" oninput="autoEstado()"></div>
+      <div class="fg"><label>Pago_ID (si ya lo tenés)</label><input type="text" id="ev-pago" placeholder="2026/00000" oninput="autoEstado()"></div>
+      <div class="fg form-full"><label>Notas</label><input type="text" id="ev-notas" placeholder="Observaciones opcionales"></div>
+    </div>
+    <div class="actions">
+      <button class="btn btn-primary" onclick="guardarEvento()">Guardar evento</button>
+      <button class="btn btn-secondary" onclick="limpiarEvento()">Limpiar</button>
+      <span id="ev-saving" style="display:none;color:#999;font-size:13px"><span class="spinner"></span> Guardando…</span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ ASIGNAR OP ═══════════════════ -->
+<div class="section" id="sec-asignar-op">
+  <div class="page-header">
+    <div><div class="page-title">Asignar OP a eventos</div><div class="page-sub">Filtrá los eventos Pendientes y asignales la OP de un golpe</div></div>
+  </div>
+  <div class="assign-header">
+    <div class="assign-controls">
+      <div class="fg" style="min-width:150px"><label>OP_ID a asignar *</label><input type="text" id="aop-opid" class="assign-id-input" placeholder="P00000"></div>
+      <div class="fg"><label>Programa</label>
+        <select id="aop-prog" onchange="renderPendientes()">
+          <option value="">Todos</option><option>TFM</option><option>OPER</option><option>RRHH</option>
+          <option>Consulta Sincrónica</option><option>Desarrollo Curso</option><option>Hub de impacto</option>
+        </select>
+      </div>
+      <div class="fg"><label>Tipo</label>
+        <select id="aop-tipo" onchange="renderPendientes()">
+          <option value="">Todos</option><option>Matrícula</option><option>Egreso</option>
+          <option>Consulta Sincrónica</option><option>Desarrollo Curso</option>
+        </select>
+      </div>
+      <div class="fg"><label>Mes</label><select id="aop-mes" onchange="renderPendientes()" style="min-width:130px"><option value="">Todos</option></select></div>
+      <div style="display:flex;flex-direction:column;gap:5px">
+        <span class="sel-info" id="aop-count">0 seleccionados</span>
+        <button class="btn btn-success" onclick="asignarOP()">✓ Asignar OP</button>
+      </div>
+    </div>
+  </div>
+  <div class="card" style="padding:0;overflow:hidden">
+    <div class="table-wrap">
+      <table>
+        <thead><tr class="select-all-row">
+          <th class="cb-col"><input type="checkbox" id="chk-all-op" onchange="toggleAll('aop-chk',this);updateAOPCount()"></th>
+          <th>ID</th><th>Nombre</th><th>Programa</th><th>Orient.</th>
+          <th>Tipo</th><th>Fecha</th><th style="text-align:right">Valor</th><th>Notas</th>
+        </tr></thead>
+        <tbody id="pendientes-tbody"><tr class="loading-row"><td colspan="9"><span class="spinner"></span></td></tr></tbody>
+      </table>
+    </div>
+    <div class="status-bar">
+      <span>Eventos con Estado_Pago = <strong>Pendiente</strong></span>
+      <span style="margin-left:auto" id="aop-total-val">Total: <strong>$0.00</strong></span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ ASIGNAR PAGO_ID ═══════════════════ -->
+<div class="section" id="sec-asignar-pago">
+  <div class="page-header">
+    <div><div class="page-title">Asignar Pago_ID a OPs</div><div class="page-sub">Seleccioná las OPs del pago — los eventos vinculados pasan a Pagado automáticamente</div></div>
+  </div>
+  <div class="assign-header">
+    <div class="assign-controls">
+      <div class="fg" style="min-width:170px"><label>Pago_ID a asignar *</label><input type="text" id="apg-pagoid" class="assign-id-input" placeholder="2026/00000"></div>
+      <div class="fg"><label>Mes</label><select id="apg-mes" onchange="renderOPsPendientes()" style="min-width:130px"><option value="">Todos</option></select></div>
+      <div class="fg"><label>Tipo</label>
+        <select id="apg-tipo" onchange="renderOPsPendientes()">
+          <option value="">Todos</option><option>Matrícula</option><option>Egreso</option>
+          <option>Consulta Sincrónica</option><option>Desarrollo Curso</option>
+        </select>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px">
+        <span class="sel-info" id="apg-count">0 seleccionadas</span>
+        <button class="btn btn-warning" onclick="asignarPago()">✓ Asignar Pago_ID</button>
+      </div>
+    </div>
+  </div>
+  <div class="card" style="padding:0;overflow:hidden">
+    <div class="table-wrap">
+      <table>
+        <thead><tr class="select-all-row">
+          <th class="cb-col"><input type="checkbox" id="chk-all-pg" onchange="toggleAll('apg-chk',this);updateAPGCount()"></th>
+          <th>OP_ID</th><th>Tipo</th><th>Mes</th>
+          <th style="text-align:right">Monto OP</th><th>Notas</th>
+        </tr></thead>
+        <tbody id="ops-pendientes-tbody"><tr class="loading-row"><td colspan="6"><span class="spinner"></span></td></tr></tbody>
+      </table>
+    </div>
+    <div class="status-bar">
+      <span>OPs sin Pago_ID</span>
+      <span style="margin-left:auto" id="apg-total-val">Total: <strong>$0.00</strong></span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ CONSULTAR ═══════════════════ -->
+<div class="section" id="sec-consultar">
+  <div class="page-header">
+    <div><div class="page-title">Consultar</div><div class="page-sub">Buscá una OP o un Pago_ID para ver su detalle completo</div></div>
+  </div>
+
+  <!-- Buscar OP -->
+  <div class="card">
+    <div class="card-title">Consultar por OP_ID</div>
+    <div style="display:flex;gap:10px;align-items:flex-end;margin-bottom:14px">
+      <div class="fg" style="flex:1;max-width:260px">
+        <label>OP_ID</label>
+        <input type="text" id="cons-opid" placeholder="P00000" oninput="consultarOP()">
+      </div>
+      <div id="cons-op-total" style="font-size:18px;font-weight:700;color:#1F3864;padding-bottom:8px"></div>
+    </div>
+    <div id="cons-op-result" style="display:none">
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>Alumno_ID</th><th>Nombre</th><th>Programa</th><th>Orient.</th>
+            <th>Tipo</th><th>Fecha</th><th style="text-align:right">Valor</th>
+            <th>Estado pago</th><th>Pago_ID</th><th>Notas</th>
+          </tr></thead>
+          <tbody id="cons-op-tbody"></tbody>
+        </table>
+      </div>
+      <div class="status-bar" id="cons-op-status"></div>
+    </div>
+    <div id="cons-op-empty" style="color:#bbb;font-style:italic;font-size:13px;display:none">No se encontraron eventos con esa OP_ID.</div>
+  </div>
+
+  <!-- Buscar Pago_ID -->
+  <div class="card">
+    <div class="card-title">Consultar por Pago_ID</div>
+    <div style="display:flex;gap:10px;align-items:flex-end;margin-bottom:14px">
+      <div class="fg" style="flex:1;max-width:260px">
+        <label>Pago_ID</label>
+        <input type="text" id="cons-pagoid" placeholder="2026/00000" oninput="consultarPago()">
+      </div>
+      <div id="cons-pago-total" style="font-size:18px;font-weight:700;color:#1F3864;padding-bottom:8px"></div>
+    </div>
+    <div id="cons-pago-result" style="display:none">
+      <!-- OPs dentro del Pago -->
+      <div class="card-title" style="margin-bottom:8px">OPs incluidas</div>
+      <div class="table-wrap" style="margin-bottom:16px">
+        <table>
+          <thead><tr>
+            <th>OP_ID</th><th>Tipo</th><th>Mes</th>
+            <th style="text-align:right">Eventos</th>
+            <th style="text-align:right">Total OP</th>
+          </tr></thead>
+          <tbody id="cons-pago-ops-tbody"></tbody>
+          <tfoot id="cons-pago-ops-tfoot"></tfoot>
+        </table>
+      </div>
+      <!-- Detalle de eventos -->
+      <div class="card-title" style="margin-bottom:8px">Detalle de eventos</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>OP_ID</th><th>Alumno_ID</th><th>Nombre</th><th>Programa</th>
+            <th>Tipo</th><th>Fecha</th><th style="text-align:right">Valor</th><th>Notas</th>
+          </tr></thead>
+          <tbody id="cons-pago-tbody"></tbody>
+        </table>
+      </div>
+      <div class="status-bar" id="cons-pago-status"></div>
+    </div>
+    <div id="cons-pago-empty" style="color:#bbb;font-style:italic;font-size:13px;display:none">No se encontraron eventos con ese Pago_ID.</div>
+  </div>
+</div>
+
+<!-- ═══════════════════ OPs HISTORIAL ═══════════════════ -->
+<div class="section" id="sec-ops">
+  <div class="page-header">
+    <div><div class="page-title">Historial de OPs</div><div class="page-sub">Todas las órdenes de pago</div></div>
+  </div>
+  <div class="filter-bar">
+    <input type="text" id="oh-buscar" placeholder="Buscar OP_ID…" oninput="renderOpsH()">
+    <select id="oh-tipo" onchange="renderOpsH()">
+      <option value="">Todos los tipos</option><option>Matrícula</option><option>Egreso</option>
+      <option>Consulta Sincrónica</option><option>Desarrollo Curso</option>
+    </select>
+    <select id="oh-estado" onchange="renderOpsH()">
+      <option value="">Todos</option><option value="sin">Sin Pago_ID</option><option value="con">Con Pago_ID</option>
+    </select>
+  </div>
+  <div class="card" style="padding:0;overflow:hidden">
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>OP_ID</th><th>Tipo</th><th>Mes</th><th>Pago_ID</th>
+          <th style="text-align:right">Monto OP</th><th>Estado</th><th>Notas</th><th></th></tr></thead>
+        <tbody id="ops-h-tbody"><tr class="loading-row"><td colspan="8"><span class="spinner"></span></td></tr></tbody>
+      </table>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title" id="op-form-title">Agregar OP manualmente</div>
+    <div class="form-grid three">
+      <div class="fg"><label>OP_ID *</label><input type="text" id="op-id" placeholder="P00000"></div>
+      <div class="fg"><label>Tipo</label>
+        <select id="op-tipo"><option value="">— Tipo —</option>
+          <option>Matrícula</option><option>Egreso</option>
+          <option>Consulta Sincrónica</option><option>Desarrollo Curso</option></select></div>
+      <div class="fg"><label>Mes evento</label>
+        <select id="op-mes" style="min-width:130px"><option value="">— Mes —</option></select></div>
+      <div class="fg"><label>Pago_ID (si ya tiene)</label><input type="text" id="op-pagoid" placeholder="2026/00000"></div>
+      <div class="fg"><label>Monto OP ($)</label><input type="number" id="op-monto" placeholder="0.00" step="0.5"></div>
+      <div class="fg"><label>Notas</label><input type="text" id="op-notas"></div>
+    </div>
+    <div class="actions">
+      <button class="btn btn-primary" onclick="guardarOP()">Guardar OP</button>
+      <button class="btn btn-secondary" onclick="limpiarOP()">Limpiar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ PAGOS HISTORIAL ═══════════════════ -->
+<div class="section" id="sec-pagos">
+  <div class="page-header">
+    <div><div class="page-title">Historial de Pagos</div><div class="page-sub">Todos los Pago_ID registrados</div></div>
+  </div>
+  <div class="card" style="padding:0;overflow:hidden">
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Pago_ID</th><th>Fecha</th><th>OPs incluidas</th>
+          <th style="text-align:right">Monto confirmado</th><th>Notas</th><th></th></tr></thead>
+        <tbody id="pagos-h-tbody"><tr class="loading-row"><td colspan="6"><span class="spinner"></span></td></tr></tbody>
+      </table>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Registrar Pago_ID manualmente</div>
+    <div class="form-grid">
+      <div class="fg"><label>Pago_ID *</label><input type="text" id="pg-id" placeholder="2026/00000"></div>
+      <div class="fg"><label>Fecha de pago</label><input type="date" id="pg-fecha"></div>
+      <div class="fg form-full"><label>OPs incluidas (separadas por coma)</label><input type="text" id="pg-ops" placeholder="P00001, P00002"></div>
+      <div class="fg"><label>Monto confirmado ($)</label><input type="number" id="pg-monto" placeholder="0.00" step="0.5"></div>
+      <div class="fg"><label>Notas</label><input type="text" id="pg-notas"></div>
+    </div>
+    <div class="actions">
+      <button class="btn btn-primary" onclick="guardarPago()">Registrar pago</button>
+      <button class="btn btn-secondary" onclick="limpiarPago()">Limpiar</button>
+    </div>
+  </div>
+</div>
+
+</main>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const WEB_APP="https://script.google.com/macros/s/AKfycbz5NgRpJ8fbcFHROrp1uWkaR8eknIbItqQK60fRw3W-Bhh71f0dfvFnqE4LEs5h1aDp/exec";
+let DATA={registro:[],ops:[],pagos:[]};
+let editIdx={ev:undefined,op:undefined,pg:undefined};
+let chartInstance=null;
+let chartTipo="Matrícula";
+const VALOR_AUTO={TFM:40,OPER:2.5,RRHH:10,"Consulta Sincrónica":15};
+const PROGRAMAS=["TFM","OPER","RRHH","Consulta Sincrónica","Desarrollo Curso","Hub de impacto"];
+const PROG_COLORS={"TFM":"#185FA5","OPER":"#0F6E56","RRHH":"#7D6608","Consulta Sincrónica":"#993C1D","Desarrollo Curso":"#660066","Hub de impacto":"#0F5460"};
+const TB={"Matrícula":"bb","Egreso":"bg","Consulta Sincrónica":"ba","Desarrollo Curso":"bp"};
+const PB={"Pendiente":"br","En_OP":"ba","Pagado":"bg"};
+const EB={"Activo":"bg","Egresado":"bb","Abandonado":"bgr"};
+
+// ── Utils ──────────────────────────────────────────────────────────
+function fmt$(n){return"$"+(parseFloat(n)||0).toFixed(2);}
+function esc(s){return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;");}
+function toast(msg,ok=true){const t=document.getElementById("toast");t.textContent=msg;t.className="toast"+(ok?"":" error")+" show";setTimeout(()=>t.classList.remove("show"),3200);}
+function normText(v){return String(v ?? "").trim();}
+function normPagoId(v){
+  const s=normText(v);
+  // Google Sheets a veces devuelve 2026/00128 como número 202600128.
+  // Esta normalización permite encontrarlo con o sin barra.
+  if(/^\d{9}$/.test(s)) return s.slice(0,4)+"/"+s.slice(4);
+  return s;
+}
+function normOpId(v){return normText(v);}
+
+function fmtFecha(raw){
+  if(!raw) return "";
+  // Handle ISO strings like 2026-04-06T03:00:00.000Z or plain dates
+  const s=String(raw);
+  const iso=s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if(iso) return `${iso[3]}/${iso[2]}/${iso[1]}`;
+  return s; // already formatted
+}
+
+function getMes(raw){
+  if(!raw) return "";
+  const s=String(raw);
+  const iso=s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if(iso) return `${iso[2]}/${iso[1]}`;
+  // dd/mm/yyyy
+  const dmy=s.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+  if(dmy) return `${dmy[2]}/${dmy[3]}`;
+  return "";
+}
+
+function mesLabel(mes){
+  const names=["","Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
+  const [m,y]=mes.split("/");
+  return`${names[parseInt(m)]} ${y}`;
+}
+
+function nav(name,btn){
+  document.querySelectorAll(".section").forEach(s=>s.classList.remove("active"));
+  document.querySelectorAll(".nav-btn").forEach(b=>b.classList.remove("active"));
+  document.getElementById("sec-"+name).classList.add("active");
+  btn.classList.add("active");
+  ({dashboard:renderDashboard,registro:renderRegistro,"asignar-op":renderPendientes,
+    "asignar-pago":renderOPsPendientes,consultar:()=>{},ops:renderOpsH,pagos:renderPagosH})[name]?.();
+}
+
+async function fetchAll(){
+  try{const r=await fetch(WEB_APP+"?action=all");const j=await r.json();
+    if(j.ok){DATA.registro=j.registro||[];DATA.ops=j.ops||[];DATA.pagos=j.pagos||[];populateMesDropdowns();}
+    else toast("Error cargando datos",false);
+  }catch(e){toast("Sin conexión con Google Sheets",false);}
+}
+
+async function post(body){const r=await fetch(WEB_APP,{method:"POST",body:JSON.stringify(body)});return r.json();}
+
+// ── Mes dropdowns ──────────────────────────────────────────────────
+function populateMesDropdowns(){
+  const meses=new Set();
+  DATA.registro.forEach(r=>{const m=getMes(r.Fecha_Evento);if(m)meses.add(m);});
+  const sorted=[...meses].sort((a,b)=>{const[ma,ya]=a.split("/");const[mb,yb]=b.split("/");return(ya-yb)||(ma-mb);}).reverse();
+  const ids=["d-mes","rb-mes","aop-mes","apg-mes","op-mes"];
+  ids.forEach(id=>{
+    const el=document.getElementById(id);if(!el)return;
+    const cur=el.value;
+    el.innerHTML='<option value="">Todos los meses</option>';
+    sorted.forEach(m=>{const o=document.createElement("option");o.value=m;o.textContent=mesLabel(m);el.appendChild(o);});
+    if(cur) el.value=cur;
+  });
+  // op-mes label fix
+  const opMes=document.getElementById("op-mes");
+  if(opMes) opMes.options[0].textContent="— Mes —";
+}
+
+// ── Dashboard ──────────────────────────────────────────────────────
+function renderDashboard(){
+  const mesFil=document.getElementById("d-mes").value;
+  const progFil=document.getElementById("d-prog").value;
+  let reg=DATA.registro.filter(r=>{
+    if(mesFil&&getMes(r.Fecha_Evento)!==mesFil)return false;
+    if(progFil&&r.Programa!==progFil)return false;
+    return true;
+  });
+
+  const activos=DATA.registro.filter(r=>r.Tipo_Evento==="Matrícula"&&r.Estado_Alumno==="Activo"&&(!progFil||r.Programa===progFil)).length;
+  const total=reg.reduce((a,r)=>a+(parseFloat(r.Valor_USD)||0),0);
+  const cobrado=reg.filter(r=>r.Estado_Pago==="Pagado").reduce((a,r)=>a+(parseFloat(r.Valor_USD)||0),0);
+  const enop=reg.filter(r=>r.Estado_Pago==="En_OP").reduce((a,r)=>a+(parseFloat(r.Valor_USD)||0),0);
+  const pend=reg.filter(r=>r.Estado_Pago==="Pendiente").reduce((a,r)=>a+(parseFloat(r.Valor_USD)||0),0);
+
+  document.getElementById("kpi-activos").textContent=activos;
+  document.getElementById("kpi-activos-sub").textContent=mesFil?`filtrado: ${mesLabel(mesFil)}`:"todos los programas";
+  document.getElementById("kpi-total").textContent=fmt$(total);
+  document.getElementById("kpi-total-sub").textContent=mesFil?mesLabel(mesFil):"acumulado total";
+  document.getElementById("kpi-cobrado").textContent=fmt$(cobrado);
+  document.getElementById("kpi-enop").textContent=fmt$(enop);
+  document.getElementById("kpi-pendiente").textContent=fmt$(pend);
+
+  // Monthly table
+  const months={};
+  reg.forEach(r=>{
+    const m=getMes(r.Fecha_Evento);if(!m)return;
+    if(!months[m])months[m]={mat:0,egr:0,con:0,cur:0,cob:0,enop:0,pend:0};
+    const v=parseFloat(r.Valor_USD)||0;
+    if(r.Tipo_Evento==="Matrícula")months[m].mat+=v;
+    else if(r.Tipo_Evento==="Egreso")months[m].egr+=v;
+    else if(r.Tipo_Evento==="Consulta Sincrónica")months[m].con+=v;
+    else months[m].cur+=v;
+    if(r.Estado_Pago==="Pagado")months[m].cob+=v;
+    else if(r.Estado_Pago==="En_OP")months[m].enop+=v;
+    else months[m].pend+=v;
+  });
+  const sorted=Object.keys(months).sort((a,b)=>{const[ma,ya]=a.split("/");const[mb,yb]=b.split("/");return(ya-yb)||(ma-mb);});
+  let tM=0,tE=0,tC=0,tCu=0,tCob=0,tEnop=0,tPend=0;
+  const rows=sorted.map(mes=>{
+    const d=months[mes];tM+=d.mat;tE+=d.egr;tC+=d.con;tCu+=d.cur;tCob+=d.cob;tEnop+=d.enop;tPend+=d.pend;
+    const tot=d.mat+d.egr+d.con+d.cur;
+    const c=v=>v?fmt$(v):`<span class="muted">—</span>`;
+    const estadoHtml=`<span class="badge bg" style="font-size:10px">${fmt$(d.cob)}</span> `+
+      (d.enop?`<span class="badge ba" style="font-size:10px">${fmt$(d.enop)}</span> `:"")+
+      (d.pend?`<span class="badge br" style="font-size:10px">${fmt$(d.pend)}</span>`:"");
+    return`<tr><td>${mesLabel(mes)}</td><td>${c(d.mat)}</td><td>${c(d.egr)}</td><td>${c(d.con)}</td><td>${c(d.cur)}</td><td><strong>${fmt$(tot)}</strong></td><td>${estadoHtml}</td></tr>`;
+  }).join("");
+  const totTot=tM+tE+tC+tCu;
+  document.getElementById("month-tbody").innerHTML=rows||'<tr class="empty-row"><td colspan="7">Sin datos para este filtro</td></tr>';
+  if(rows) document.getElementById("month-tbody").innerHTML+=
+    `<tr class="total-row"><td>TOTAL</td><td>${fmt$(tM)}</td><td>${fmt$(tE)}</td><td>${fmt$(tC)}</td><td>${fmt$(tCu)}</td><td>${fmt$(totTot)}</td><td></td></tr>`;
+
+  renderChart();
+}
+
+// ── Chart ──────────────────────────────────────────────────────────
+function setChartTipo(tipo,btn){
+  chartTipo=tipo;
+  document.querySelectorAll(".chart-tab").forEach(b=>b.classList.remove("active"));
+  btn.classList.add("active");
+  renderChart();
+}
+
+function renderChart(){
+  const year=document.getElementById("chart-year").value;
+  const progFil=document.getElementById("d-prog").value;
+  const progs=progFil?[progFil]:PROGRAMAS.filter(p=>p!=="Consulta Sincrónica"&&p!=="Desarrollo Curso"&&p!=="Hub de impacto");
+  const months=Array.from({length:12},(_,i)=>String(i+1).padStart(2,"0")+"/"+year);
+
+  const datasets=progs.map(prog=>({
+    label:prog,
+    data:months.map(mes=>DATA.registro.filter(r=>r.Programa===prog&&r.Tipo_Evento===chartTipo&&getMes(r.Fecha_Evento)===mes).length),
+    backgroundColor:PROG_COLORS[prog]||"#aaa",
+    borderRadius:4,
+  }));
+
+  const labels=months.map(m=>mesLabel(m));
+  const ctx=document.getElementById("evolucion-chart").getContext("2d");
+  if(chartInstance) chartInstance.destroy();
+  chartInstance=new Chart(ctx,{
+    type:"bar",
+    data:{labels,datasets},
+    options:{
+      responsive:true,
+      plugins:{legend:{position:"top",labels:{font:{size:12},padding:16}},tooltip:{mode:"index",intersect:false}},
+      scales:{
+        x:{grid:{display:false},ticks:{font:{size:11}}},
+        y:{beginAtZero:true,ticks:{stepSize:1,font:{size:11}},grid:{color:"#f0f0f0"}}
+      }
+    }
+  });
+}
+
+// ── Registro ───────────────────────────────────────────────────────
+function renderRegistro(){
+  const nom=document.getElementById("rb-buscar").value.toLowerCase();
+  const mes=document.getElementById("rb-mes").value;
+  const prog=document.getElementById("rb-prog").value;
+  const tipo=document.getElementById("rb-tipo").value;
+  const pago=document.getElementById("rb-pago").value;
+  const rows=DATA.registro.filter(r=>{
+    if(nom&&!(r.Nombre||"").toLowerCase().includes(nom)&&!(r.Alumno_ID||"").toLowerCase().includes(nom))return false;
+    if(mes&&getMes(r.Fecha_Evento)!==mes)return false;
+    if(prog&&r.Programa!==prog)return false;
+    if(tipo&&r.Tipo_Evento!==tipo)return false;
+    if(pago&&r.Estado_Pago!==pago)return false;
+    return true;
+  });
+  if(!rows.length){document.getElementById("reg-tbody").innerHTML='<tr class="empty-row"><td colspan="13">Sin resultados</td></tr>';return;}
+  document.getElementById("reg-tbody").innerHTML=rows.map(r=>{const ri=DATA.registro.indexOf(r);
+    return`<tr>
+      <td style="font-size:11px;font-family:monospace">${esc(r.Alumno_ID)}</td>
+      <td>${esc(r.Nombre)}</td>
+      <td><span class="badge bgr">${esc(r.Programa)}</span></td>
+      <td>${r.Orientacion?`<span class="badge bt">${esc(r.Orientacion)}</span>`:""}</td>
+      <td><span class="badge ${TB[r.Tipo_Evento]||"bgr"}">${esc(r.Tipo_Evento)}</span></td>
+      <td>${fmtFecha(r.Fecha_Evento)}</td>
+      <td><span class="badge ${EB[r.Estado_Alumno]||"bgr"}">${esc(r.Estado_Alumno)}</span></td>
+      <td style="text-align:right">${r.Valor_USD?fmt$(r.Valor_USD):"—"}</td>
+      <td><span class="badge ${PB[r.Estado_Pago]||"bgr"}">${esc(r.Estado_Pago)}</span></td>
+      <td style="font-size:12px">${esc(r.OP_ID)}</td>
+      <td style="font-size:12px">${esc(r.Pago_ID)}</td>
+      <td class="tag" title="${esc(r.Notas)}">${esc(r.Notas)}</td>
+      <td><button class="btn btn-secondary btn-sm" onclick="editEvento(${ri})">Editar</button></td>
+    </tr>`;}).join("");
+}
+
+// ── Autocomplete ───────────────────────────────────────────────────
+let acFocusIdx={nombre:-1,id:-1};
+
+function getAlumnosUnicos(){
+  const seen=new Set();const res=[];
+  DATA.registro.forEach(r=>{
+    if(r.Alumno_ID&&!seen.has(r.Alumno_ID)){
+      seen.add(r.Alumno_ID);
+      res.push({id:r.Alumno_ID,nombre:r.Nombre||"",programa:r.Programa||"",orientacion:r.Orientacion||""});
+    }
+  });
+  return res;
+}
+
+function fillFromAlumno(a){
+  document.getElementById("ev-id").value=a.id;
+  document.getElementById("ev-nombre").value=a.nombre;
+  document.getElementById("ev-prog").value=a.programa;
+  onProgChange();
+  document.getElementById("ev-orient").value=a.orientacion;
+  closeAC("nombre");closeAC("id");
+}
+
+function renderACList(listId,items){
+  const el=document.getElementById("ac-"+listId+"-list");
+  if(!items.length){closeAC(listId);return;}
+  el.innerHTML=items.map((a,i)=>
+    `<div class="ac-item" data-idx="${i}" onmousedown="fillFromAlumno(window._acItems_${listId}[${i}])">
+      ${esc(a.nombre)} <span class="ac-id">${esc(a.id)}</span>
+    </div>`).join("");
+  window["_acItems_"+listId]=items;
+  el.classList.add("open");
+  acFocusIdx[listId]=-1;
+}
+
+function closeAC(which){
+  document.getElementById("ac-"+which+"-list").classList.remove("open");
+  acFocusIdx[which]=-1;
+}
+
+function acNombre(){
+  const q=document.getElementById("ev-nombre").value.toLowerCase();
+  if(q.length<2){closeAC("nombre");return;}
+  const matches=getAlumnosUnicos().filter(a=>(a.nombre||"").toLowerCase().includes(q)).slice(0,8);
+  renderACList("nombre",matches);
+}
+
+function acId(){
+  const q=document.getElementById("ev-id").value.toLowerCase();
+  if(q.length<2){closeAC("id");return;}
+  const matches=getAlumnosUnicos().filter(a=>(a.id||"").toLowerCase().includes(q)).slice(0,8);
+  renderACList("id",matches);
+}
+
+function acKeyNombre(e){acKey(e,"nombre");}
+function acKeyId(e){acKey(e,"id");}
+
+function acKey(e,which){
+  const list=document.getElementById("ac-"+which+"-list");
+  const items=list.querySelectorAll(".ac-item");
+  if(e.key==="ArrowDown"){e.preventDefault();acFocusIdx[which]=Math.min(acFocusIdx[which]+1,items.length-1);setACFocus(items,acFocusIdx[which]);}
+  else if(e.key==="ArrowUp"){e.preventDefault();acFocusIdx[which]=Math.max(acFocusIdx[which]-1,0);setACFocus(items,acFocusIdx[which]);}
+  else if(e.key==="Enter"&&acFocusIdx[which]>=0){e.preventDefault();items[acFocusIdx[which]].dispatchEvent(new MouseEvent("mousedown"));}
+  else if(e.key==="Escape"){closeAC(which);}
+}
+
+function setACFocus(items,idx){items.forEach((it,i)=>it.classList.toggle("focused",i===idx));}
+
+document.addEventListener("click",e=>{
+  if(!e.target.closest(".ac-wrap")){closeAC("nombre");closeAC("id");}
+});
+
+// ── Formulario evento ──────────────────────────────────────────────
+function autoEstado(){
+  const op=document.getElementById("ev-op").value.trim();
+  const pg=document.getElementById("ev-pago").value.trim();
+  const el=document.getElementById("ev-estpago");
+  if(pg){el.value="Pagado";el.style.color="#0F6E56";}
+  else if(op){el.value="En_OP";el.style.color="#854F0B";}
+  else{el.value="Pendiente";el.style.color="#993C1D";}
+}
+
+function onProgChange(){
+  const prog=document.getElementById("ev-prog").value;
+  document.getElementById("orient-group").style.display=prog==="TFM"?"flex":"none";
+  if(prog!=="TFM") document.getElementById("ev-orient").value="";
+  const vf=document.getElementById("ev-valor");
+  if(prog==="Desarrollo Curso"||prog==="Hub de impacto"){
+    vf.removeAttribute("readonly");vf.style.background="";vf.style.color="";vf.placeholder="Ingresar monto";vf.value="";
+  }else{
+    vf.setAttribute("readonly","readonly");vf.style.background="#f7f7f7";vf.style.color="#999";vf.placeholder="Automático";
+    vf.value=VALOR_AUTO[prog]!==undefined?VALOR_AUTO[prog]:"";
+  }
+}
+
+function limpiarEvento(){
+  ["ev-id","ev-nombre","ev-fecha","ev-valor","ev-op","ev-pago","ev-notas"].forEach(id=>document.getElementById(id).value="");
+  document.getElementById("ev-prog").value="";document.getElementById("ev-orient").value="";
+  document.getElementById("orient-group").style.display="none";
+  document.getElementById("ev-tipo").value="";document.getElementById("ev-estalu").value="Activo";
+  const el=document.getElementById("ev-estpago");el.value="Pendiente";el.style.color="#993C1D";
+  const vf=document.getElementById("ev-valor");vf.setAttribute("readonly","readonly");vf.style.background="#f7f7f7";vf.style.color="#999";vf.placeholder="Automático";
+  document.getElementById("form-title").textContent="Nuevo evento";editIdx.ev=undefined;
+}
+
+function editEvento(i){
+  const r=DATA.registro[i];
+  document.getElementById("ev-nombre").value=r.Nombre||"";document.getElementById("ev-id").value=r.Alumno_ID||"";
+  document.getElementById("ev-prog").value=r.Programa||"";onProgChange();
+  document.getElementById("ev-orient").value=r.Orientacion||"";
+  document.getElementById("ev-tipo").value=r.Tipo_Evento||"";document.getElementById("ev-estalu").value=r.Estado_Alumno||"Activo";
+  // Store raw date for input[type=date]
+  const rawFecha=String(r.Fecha_Evento||"");
+  const isoMatch=rawFecha.match(/^(\d{4}-\d{2}-\d{2})/);
+  document.getElementById("ev-fecha").value=isoMatch?isoMatch[1]:rawFecha;
+  if(r.Programa==="Desarrollo Curso"||r.Programa==="Hub de impacto") document.getElementById("ev-valor").value=r.Valor_USD||"";
+  document.getElementById("ev-op").value=r.OP_ID||"";document.getElementById("ev-pago").value=r.Pago_ID||"";
+  document.getElementById("ev-notas").value=r.Notas||"";autoEstado();
+  editIdx.ev=i;document.getElementById("form-title").textContent="Editar evento";
+  document.querySelectorAll(".nav-btn")[2].click();
+}
+
+async function guardarEvento(){
+  const op=document.getElementById("ev-op").value.trim();const pg=document.getElementById("ev-pago").value.trim();
+  const fechaRaw=document.getElementById("ev-fecha").value; // yyyy-mm-dd from date input
+  const data={
+    Alumno_ID:document.getElementById("ev-id").value.trim(),
+    Nombre:document.getElementById("ev-nombre").value.trim(),
+    Programa:document.getElementById("ev-prog").value,
+    Orientacion:document.getElementById("ev-orient").value,
+    Tipo_Evento:document.getElementById("ev-tipo").value,
+    Fecha_Evento:fechaRaw,
+    Estado_Alumno:document.getElementById("ev-estalu").value,
+    Valor_USD:document.getElementById("ev-valor").value,
+    Estado_Pago:pg?"Pagado":op?"En_OP":"Pendiente",
+    OP_ID:op,Pago_ID:pg,
+    Notas:document.getElementById("ev-notas").value.trim(),
+  };
+  if(!data.Nombre||!data.Tipo_Evento){toast("Nombre y tipo de evento son obligatorios",false);return;}
+  document.getElementById("ev-saving").style.display="inline-flex";
+  try{
+    let res;
+    if(editIdx.ev!==undefined){res=await post({action:"update_evento",rowIndex:editIdx.ev,data});if(res.ok)DATA.registro[editIdx.ev]=data;}
+    else{res=await post({action:"add_evento",data});if(res.ok){DATA.registro.push(data);populateMesDropdowns();}}
+    if(res.ok){toast("Evento guardado ✓");limpiarEvento();}else toast(res.error||"Error",false);
+  }catch(e){toast("Error de conexión",false);}
+  document.getElementById("ev-saving").style.display="none";
+}
+
+// ── Asignar OP ─────────────────────────────────────────────────────
+function renderPendientes(){
+  const prog=document.getElementById("aop-prog").value;
+  const tipo=document.getElementById("aop-tipo").value;
+  const mes=document.getElementById("aop-mes").value;
+  const rows=DATA.registro.filter(r=>{
+    if(r.Estado_Pago!=="Pendiente")return false;
+    if(prog&&r.Programa!==prog)return false;
+    if(tipo&&r.Tipo_Evento!==tipo)return false;
+    if(mes&&getMes(r.Fecha_Evento)!==mes)return false;
+    return true;});
+  document.getElementById("chk-all-op").checked=false;updateAOPCount();
+  if(!rows.length){document.getElementById("pendientes-tbody").innerHTML='<tr class="empty-row"><td colspan="9">No hay eventos pendientes con esos filtros</td></tr>';return;}
+  document.getElementById("pendientes-tbody").innerHTML=rows.map(r=>{const ri=DATA.registro.indexOf(r);
+    return`<tr><td class="cb-col"><input type="checkbox" class="aop-chk" data-idx="${ri}" data-val="${parseFloat(r.Valor_USD)||0}" onchange="updateAOPCount()"></td>
+      <td style="font-size:11px;font-family:monospace">${esc(r.Alumno_ID)}</td><td>${esc(r.Nombre)}</td>
+      <td><span class="badge bgr">${esc(r.Programa)}</span></td>
+      <td>${r.Orientacion?`<span class="badge bt">${esc(r.Orientacion)}</span>`:""}</td>
+      <td><span class="badge ${TB[r.Tipo_Evento]||"bgr"}">${esc(r.Tipo_Evento)}</span></td>
+      <td>${fmtFecha(r.Fecha_Evento)}</td>
+      <td style="text-align:right">${r.Valor_USD?fmt$(r.Valor_USD):"—"}</td>
+      <td class="tag" title="${esc(r.Notas)}">${esc(r.Notas)}</td></tr>`;}).join("");
+}
+
+function toggleAll(cls,master){document.querySelectorAll("."+cls).forEach(c=>c.checked=master.checked);}
+function updateAOPCount(){const c=[...document.querySelectorAll(".aop-chk:checked")];const t=c.reduce((a,x)=>a+(parseFloat(x.dataset.val)||0),0);
+  document.getElementById("aop-count").innerHTML=`<strong>${c.length}</strong> seleccionado${c.length!==1?"s":""}`;
+  document.getElementById("aop-total-val").innerHTML=`Total: <strong>${fmt$(t)}</strong>`;}
+
+async function asignarOP(){
+  const opId=document.getElementById("aop-opid").value.trim();
+  if(!opId){toast("Ingresá el OP_ID primero",false);return;}
+  const chks=[...document.querySelectorAll(".aop-chk:checked")];
+  if(!chks.length){toast("Seleccioná al menos un evento",false);return;}
+  let ok=0,err=0;
+  for(const c of chks){const idx=parseInt(c.dataset.idx);const r={...DATA.registro[idx],OP_ID:opId,Estado_Pago:"En_OP"};
+    try{const res=await post({action:"update_evento",rowIndex:idx,data:r});if(res.ok){DATA.registro[idx]=r;ok++;}else err++;}catch(e){err++;}}
+  if(ok)toast(`✓ OP ${opId} asignada a ${ok} evento${ok!==1?"s":""}`);
+  if(err)toast(`${err} error${err!==1?"es":""} al guardar`,false);
+  renderPendientes();
+}
+
+// ── Asignar Pago_ID ────────────────────────────────────────────────
+// Agrupa OPs únicas directamente desde REGISTRO (eventos con En_OP y sin Pago_ID)
+function getOPsDesdeRegistro(){
+  const map={};
+  DATA.registro.forEach(r=>{
+    if(!r.OP_ID||r.Pago_ID||r.Estado_Pago!=="En_OP")return;
+    if(!map[r.OP_ID])map[r.OP_ID]={
+      OP_ID:r.OP_ID,
+      Tipo:r.Tipo_Evento,
+      Mes:getMes(r.Fecha_Evento),
+      Programa:r.Programa,
+      eventos:[],
+      total:0,
+    };
+    map[r.OP_ID].eventos.push(r);
+    map[r.OP_ID].total+=parseFloat(r.Valor_USD)||0;
+  });
+  return Object.values(map);
+}
+
+function renderOPsPendientes(){
+  const mes=document.getElementById("apg-mes").value;
+  const tipo=document.getElementById("apg-tipo").value;
+  const ops=getOPsDesdeRegistro().filter(op=>{
+    if(mes&&op.Mes!==mes)return false;
+    if(tipo&&op.Tipo!==tipo)return false;
+    return true;
+  });
+  document.getElementById("chk-all-pg").checked=false;updateAPGCount();
+  if(!ops.length){
+    document.getElementById("ops-pendientes-tbody").innerHTML=
+      '<tr class="empty-row"><td colspan="6">No hay OPs en estado "En_OP" sin Pago_ID</td></tr>';
+    return;
+  }
+  // Guardamos referencia para usarla en asignarPago
+  window._opsPendientes=ops;
+  document.getElementById("ops-pendientes-tbody").innerHTML=ops.map((op,i)=>{
+    const detalle=op.eventos.map(e=>esc(e.Nombre)).join(", ");
+    return`<tr>
+      <td class="cb-col"><input type="checkbox" class="apg-chk" data-idx="${i}" data-val="${op.total}" onchange="updateAPGCount()"></td>
+      <td><strong>${esc(op.OP_ID)}</strong></td>
+      <td><span class="badge ${TB[op.Tipo]||"bgr"}">${esc(op.Tipo)}</span></td>
+      <td>${op.Mes?mesLabel(op.Mes):"—"}</td>
+      <td style="text-align:right">${fmt$(op.total)}<br><span style="font-size:10px;color:#aaa">${op.eventos.length} evento${op.eventos.length!==1?"s":""}</span></td>
+      <td class="tag" title="${detalle}">${detalle}</td>
+    </tr>`;
+  }).join("");
+}
+
+function updateAPGCount(){
+  const c=[...document.querySelectorAll(".apg-chk:checked")];
+  const t=c.reduce((a,x)=>a+(parseFloat(x.dataset.val)||0),0);
+  document.getElementById("apg-count").innerHTML=`<strong>${c.length}</strong> seleccionada${c.length!==1?"s":""}`;
+  document.getElementById("apg-total-val").innerHTML=`Total: <strong>${fmt$(t)}</strong>`;
+}
+
+async function asignarPago(){
+  const pagoId=document.getElementById("apg-pagoid").value.trim();
+  if(!pagoId){toast("Ingresá el Pago_ID primero",false);return;}
+  const chks=[...document.querySelectorAll(".apg-chk:checked")];
+  if(!chks.length){toast("Seleccioná al menos una OP",false);return;}
+
+  // Recopilar todos los eventos de las OPs seleccionadas
+  const opsSelec=chks.map(c=>window._opsPendientes[parseInt(c.dataset.idx)]);
+  const eventosAActualizar=opsSelec.flatMap(op=>op.eventos);
+
+  let ok=0,err=0;
+  for(const r of eventosAActualizar){
+    const idx=DATA.registro.indexOf(r);
+    if(idx===-1)continue;
+    const updated={...r,Pago_ID:pagoId,Estado_Pago:"Pagado"};
+    try{
+      const res=await post({action:"update_evento",rowIndex:idx,data:updated});
+      if(res.ok){DATA.registro[idx]=updated;ok++;}else err++;
+    }catch(e){err++;}
+  }
+  const nOps=opsSelec.length;
+  if(ok)toast(`✓ Pago_ID ${pagoId} asignado · ${nOps} OP${nOps!==1?"s":""} · ${ok} evento${ok!==1?"s":""} marcados como Pagado`);
+  if(err)toast(`${err} error${err!==1?"es":""} al guardar`,false);
+  renderOPsPendientes();
+}
+
+// ── OPs historial ──────────────────────────────────────────────────
+function renderOpsH(){
+  const b=document.getElementById("oh-buscar").value.toLowerCase();
+  const t=document.getElementById("oh-tipo").value;
+  const s=document.getElementById("oh-estado").value;
+  const rows=DATA.ops.filter(op=>{
+    if(b&&!(op.OP_ID||"").toLowerCase().includes(b))return false;
+    if(t&&op.Tipo!==t)return false;
+    if(s==="sin"&&op.Pago_ID)return false;
+    if(s==="con"&&!op.Pago_ID)return false;return true;});
+  if(!rows.length){document.getElementById("ops-h-tbody").innerHTML='<tr class="empty-row"><td colspan="8">Sin resultados</td></tr>';return;}
+  document.getElementById("ops-h-tbody").innerHTML=rows.map(op=>{const oi=DATA.ops.indexOf(op);
+    return`<tr><td><strong>${esc(op.OP_ID)}</strong></td>
+      <td><span class="badge ${TB[op.Tipo]||"bgr"}">${esc(op.Tipo)}</span></td>
+      <td>${esc(op.Mes_Evento)}</td><td style="font-size:12px">${esc(op.Pago_ID)||"—"}</td>
+      <td style="text-align:right">${op.Monto_OP?fmt$(op.Monto_OP):"—"}</td>
+      <td>${op.Pago_ID?'<span class="badge bg">✓ Pagado</span>':'<span class="badge br">Sin Pago_ID</span>'}</td>
+      <td style="font-size:12px">${esc(op.Notas)}</td>
+      <td><button class="btn btn-secondary btn-sm" onclick="editOP(${oi})">Editar</button></td></tr>`;}).join("");
+}
+
+function editOP(i){const op=DATA.ops[i];
+  document.getElementById("op-id").value=op.OP_ID||"";document.getElementById("op-tipo").value=op.Tipo||"";
+  document.getElementById("op-mes").value=op.Mes_Evento||"";document.getElementById("op-pagoid").value=op.Pago_ID||"";
+  document.getElementById("op-monto").value=op.Monto_OP||"";document.getElementById("op-notas").value=op.Notas||"";
+  document.getElementById("op-form-title").textContent="Editar OP";editIdx.op=i;}
+
+async function guardarOP(){
+  const data={OP_ID:document.getElementById("op-id").value.trim(),Tipo:document.getElementById("op-tipo").value,
+    Mes_Evento:document.getElementById("op-mes").value,Pago_ID:document.getElementById("op-pagoid").value.trim(),
+    Monto_OP:document.getElementById("op-monto").value,Notas:document.getElementById("op-notas").value.trim()};
+  if(!data.OP_ID){toast("OP_ID es obligatorio",false);return;}
+  try{let res;
+    if(editIdx.op!==undefined){res=await post({action:"update_op",rowIndex:editIdx.op,data});if(res.ok)DATA.ops[editIdx.op]=data;}
+    else{res=await post({action:"add_op",data});if(res.ok)DATA.ops.push(data);}
+    if(res.ok){toast("OP guardada ✓");limpiarOP();renderOpsH();}else toast(res.error||"Error",false);
+  }catch(e){toast("Error de conexión",false);}
+}
+
+function limpiarOP(){["op-id","op-pagoid","op-monto","op-notas"].forEach(id=>document.getElementById(id).value="");
+  document.getElementById("op-tipo").value="";document.getElementById("op-mes").value="";
+  document.getElementById("op-form-title").textContent="Agregar OP manualmente";editIdx.op=undefined;}
+
+// ── Pagos historial ────────────────────────────────────────────────
+function renderPagosH(){
+  if(!DATA.pagos.length){document.getElementById("pagos-h-tbody").innerHTML='<tr class="empty-row"><td colspan="6">Sin pagos registrados</td></tr>';return;}
+  document.getElementById("pagos-h-tbody").innerHTML=DATA.pagos.map((pg,i)=>
+    `<tr><td><strong>${esc(pg.Pago_ID)}</strong></td><td>${fmtFecha(pg.Fecha_Pago)}</td>
+    <td class="tag" title="${esc(pg.OPs)}" style="max-width:240px">${esc(pg.OPs)}</td>
+    <td style="text-align:right">${pg.Monto_Confirmado?fmt$(pg.Monto_Confirmado):"—"}</td>
+    <td style="font-size:12px">${esc(pg.Notas)}</td>
+    <td><button class="btn btn-secondary btn-sm" onclick="editPago(${i})">Editar</button></td></tr>`).join("");
+}
+
+function editPago(i){const pg=DATA.pagos[i];
+  document.getElementById("pg-id").value=pg.Pago_ID||"";
+  const rawF=String(pg.Fecha_Pago||"");const isoF=rawF.match(/^(\d{4}-\d{2}-\d{2})/);
+  document.getElementById("pg-fecha").value=isoF?isoF[1]:rawF;
+  document.getElementById("pg-ops").value=pg.OPs||"";document.getElementById("pg-monto").value=pg.Monto_Confirmado||"";
+  document.getElementById("pg-notas").value=pg.Notas||"";editIdx.pg=i;}
+
+async function guardarPago(){
+  const data={Pago_ID:document.getElementById("pg-id").value.trim(),Fecha_Pago:document.getElementById("pg-fecha").value,
+    OPs:document.getElementById("pg-ops").value.trim(),Monto_Confirmado:document.getElementById("pg-monto").value,
+    Notas:document.getElementById("pg-notas").value.trim()};
+  if(!data.Pago_ID){toast("Pago_ID es obligatorio",false);return;}
+  try{let res;
+    if(editIdx.pg!==undefined){res=await post({action:"update_pago",rowIndex:editIdx.pg,data});if(res.ok)DATA.pagos[editIdx.pg]=data;}
+    else{res=await post({action:"add_pago",data});if(res.ok)DATA.pagos.push(data);}
+    if(res.ok){toast("Pago registrado ✓");limpiarPago();renderPagosH();}else toast(res.error||"Error",false);
+  }catch(e){toast("Error de conexión",false);}
+}
+
+function limpiarPago(){["pg-id","pg-fecha","pg-ops","pg-monto","pg-notas"].forEach(id=>document.getElementById(id).value="");editIdx.pg=undefined;}
+
+// ── Consultar ──────────────────────────────────────────────────────
+function consultarOP(){
+  const opId=document.getElementById("cons-opid").value.trim();
+  const res=document.getElementById("cons-op-result");
+  const empty=document.getElementById("cons-op-empty");
+  const totalEl=document.getElementById("cons-op-total");
+  res.style.display="none"; empty.style.display="none"; totalEl.textContent="";
+  if(!opId) return;
+
+  const rows=DATA.registro.filter(r=>normOpId(r.OP_ID)===opId);
+  if(!rows.length){empty.style.display="block";return;}
+
+  const total=rows.reduce((a,r)=>a+(parseFloat(r.Valor_USD)||0),0);
+  totalEl.textContent=fmt$(total);
+
+  document.getElementById("cons-op-tbody").innerHTML=rows.map(r=>`<tr>
+    <td style="font-size:11px;font-family:monospace">${esc(r.Alumno_ID)}</td>
+    <td>${esc(r.Nombre)}</td>
+    <td><span class="badge bgr">${esc(r.Programa)}</span></td>
+    <td>${r.Orientacion?`<span class="badge bt">${esc(r.Orientacion)}</span>`:""}</td>
+    <td><span class="badge ${TB[r.Tipo_Evento]||"bgr"}">${esc(r.Tipo_Evento)}</span></td>
+    <td>${fmtFecha(r.Fecha_Evento)}</td>
+    <td style="text-align:right"><strong>${r.Valor_USD?fmt$(r.Valor_USD):"—"}</strong></td>
+    <td><span class="badge ${PB[r.Estado_Pago]||"bgr"}">${esc(r.Estado_Pago)}</span></td>
+    <td style="font-size:12px">${esc(r.Pago_ID)||"—"}</td>
+    <td class="tag" title="${esc(r.Notas)}">${esc(r.Notas)}</td>
+  </tr>`).join("");
+
+  document.getElementById("cons-op-status").innerHTML=
+    `<span><strong>${rows.length}</strong> evento${rows.length!==1?"s":""} en esta OP</span>`+
+    `<span style="margin-left:auto">Total: <strong>${fmt$(total)}</strong></span>`;
+  res.style.display="block";
+}
+
+function consultarPago(){
+  const pagoId=normPagoId(document.getElementById("cons-pagoid").value);
+  const res=document.getElementById("cons-pago-result");
+  const empty=document.getElementById("cons-pago-empty");
+  const totalEl=document.getElementById("cons-pago-total");
+  res.style.display="none"; empty.style.display="none"; totalEl.textContent="";
+  if(!pagoId) return;
+
+  // Búsqueda robusta: Pago_ID puede llegar desde Google Sheets como texto (2026/00128)
+  // o como número si Sheets perdió el formato de texto (202600128).
+  const rows=DATA.registro.filter(r=>normPagoId(r.Pago_ID)===pagoId);
+  if(!rows.length){empty.style.display="block";return;}
+
+  // Agrupar por OP
+  const opMap={};
+  rows.forEach(r=>{
+    const op=normOpId(r.OP_ID)||"(sin OP)";
+    if(!opMap[op]) opMap[op]={tipo:r.Tipo_Evento,mes:getMes(r.Fecha_Evento),count:0,total:0};
+    opMap[op].count++;
+    opMap[op].total+=parseFloat(r.Valor_USD)||0;
+  });
+  const opList=Object.entries(opMap);
+  const totalPago=rows.reduce((a,r)=>a+(parseFloat(r.Valor_USD)||0),0);
+  totalEl.textContent=fmt$(totalPago);
+
+  // OPs table
+  document.getElementById("cons-pago-ops-tbody").innerHTML=opList.map(([opId,d])=>`<tr>
+    <td><strong>${esc(opId)}</strong></td>
+    <td><span class="badge ${TB[d.tipo]||"bgr"}">${esc(d.tipo)}</span></td>
+    <td>${d.mes?mesLabel(d.mes):"—"}</td>
+    <td style="text-align:right">${d.count}</td>
+    <td style="text-align:right"><strong>${fmt$(d.total)}</strong></td>
+  </tr>`).join("");
+  document.getElementById("cons-pago-ops-tfoot").innerHTML=
+    `<tr style="background:#f0f4f9;font-weight:700">
+      <td colspan="3">TOTAL</td>
+      <td style="text-align:right">${rows.length}</td>
+      <td style="text-align:right">${fmt$(totalPago)}</td>
+    </tr>`;
+
+  // Eventos detalle
+  document.getElementById("cons-pago-tbody").innerHTML=rows.map(r=>`<tr>
+    <td style="font-size:12px">${esc(r.OP_ID)}</td>
+    <td style="font-size:11px;font-family:monospace">${esc(r.Alumno_ID)}</td>
+    <td>${esc(r.Nombre)}</td>
+    <td><span class="badge bgr">${esc(r.Programa)}</span></td>
+    <td><span class="badge ${TB[r.Tipo_Evento]||"bgr"}">${esc(r.Tipo_Evento)}</span></td>
+    <td>${fmtFecha(r.Fecha_Evento)}</td>
+    <td style="text-align:right"><strong>${r.Valor_USD?fmt$(r.Valor_USD):"—"}</strong></td>
+    <td class="tag" title="${esc(r.Notas)}">${esc(r.Notas)}</td>
+  </tr>`).join("");
+
+  document.getElementById("cons-pago-status").innerHTML=
+    `<span><strong>${opList.length}</strong> OP${opList.length!==1?"s":""} · <strong>${rows.length}</strong> evento${rows.length!==1?"s":""}</span>`+
+    `<span style="margin-left:auto">Total: <strong>${fmt$(totalPago)}</strong></span>`;
+  res.style.display="block";
+}
+
+// ── Init ───────────────────────────────────────────────────────────
+(async()=>{
+  await fetchAll();
+  renderDashboard();
+  const el=document.getElementById("ev-estpago");el.value="Pendiente";el.style.color="#993C1D";
+})();
+</script>
+</body>
+</html>
