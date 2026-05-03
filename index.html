@@ -110,6 +110,7 @@ input[type=checkbox]{width:15px;height:15px;cursor:pointer;accent-color:#1F3864}
     <button class="nav-btn active" onclick="nav('dashboard',this)">📊 &nbsp;Dashboard</button>
     <button class="nav-btn" onclick="nav('registro',this)">📋 &nbsp;Registro</button>
     <button class="nav-btn" onclick="nav('nuevo',this)">＋ &nbsp;Nuevo evento</button>
+    <button class="nav-btn" onclick="nav('sueldo',this)">💼 &nbsp;Sueldo</button>
   </div>
   <div class="nav-section">
     <div class="nav-label">Liquidaciones</div>
@@ -142,7 +143,7 @@ input[type=checkbox]{width:15px;height:15px;cursor:pointer;accent-color:#1F3864}
     <select id="d-prog" onchange="renderDashboard()">
       <option value="">Todos</option>
       <option>TFM</option><option>OPER</option><option>RRHH</option>
-      <option>Consulta Sincrónica</option><option>Desarrollo Curso</option><option>Hub de impacto</option>
+      <option>Consulta Sincrónica</option><option>Desarrollo Curso</option><option>Hub de impacto</option><option>Sueldo</option>
     </select>
     <button class="btn btn-secondary btn-sm" onclick="document.getElementById('d-mes').value='';document.getElementById('d-prog').value='';renderDashboard()">✕ Limpiar</button>
   </div>
@@ -196,7 +197,7 @@ input[type=checkbox]{width:15px;height:15px;cursor:pointer;accent-color:#1F3864}
     <select id="rb-prog" onchange="renderRegistro()">
       <option value="">Todos los programas</option>
       <option>TFM</option><option>OPER</option><option>RRHH</option>
-      <option>Consulta Sincrónica</option><option>Desarrollo Curso</option><option>Hub de impacto</option>
+      <option>Consulta Sincrónica</option><option>Desarrollo Curso</option><option>Hub de impacto</option><option>Sueldo</option>
     </select>
     <select id="rb-tipo" onchange="renderRegistro()">
       <option value="">Todos los tipos</option>
@@ -288,6 +289,45 @@ input[type=checkbox]{width:15px;height:15px;cursor:pointer;accent-color:#1F3864}
   </div>
 </div>
 
+
+<!-- ═══════════════════ SUELDO ═══════════════════ -->
+<div class="section" id="sec-sueldo">
+  <div class="page-header">
+    <div><div class="page-title">Registrar Sueldo</div><div class="page-sub">Ingresá los pagos de sueldo manualmente</div></div>
+  </div>
+  <div class="card">
+    <div class="form-grid">
+      <div class="fg form-full">
+        <label>Descripción *</label>
+        <input type="text" id="su-nombre" placeholder="Ej: Sueldo enero 2026">
+      </div>
+      <div class="fg"><label>Fecha</label><input type="date" id="su-fecha"></div>
+      <div class="fg"><label>Valor USD *</label><input type="number" id="su-valor" placeholder="0.00" step="0.5"></div>
+      <div class="fg">
+        <label>Estado de pago</label>
+        <select id="su-estpago">
+          <option value="Pendiente">Pendiente</option>
+          <option value="Pagado">Pagado</option>
+        </select>
+      </div>
+      <div class="fg"><label>Notas</label><input type="text" id="su-notas" placeholder="Observaciones opcionales"></div>
+    </div>
+    <div class="actions">
+      <button class="btn btn-primary" onclick="guardarSueldo()">Guardar sueldo</button>
+      <button class="btn btn-secondary" onclick="limpiarSueldo()">Limpiar</button>
+      <span id="su-saving" style="display:none;color:#999;font-size:13px"><span class="spinner"></span> Guardando…</span>
+    </div>
+  </div>
+  <div class="card" style="padding:0;overflow:hidden;margin-top:0">
+    <div style="padding:12px 16px 8px;font-size:11px;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:.7px">Sueldos registrados</div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Descripción</th><th>Fecha</th><th style="text-align:right">Valor</th><th>Estado</th><th>Notas</th><th></th></tr></thead>
+        <tbody id="sueldo-tbody"><tr class="loading-row"><td colspan="6"><span class="spinner"></span></td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
 <!-- ═══════════════════ ASIGNAR OP ═══════════════════ -->
 <div class="section" id="sec-asignar-op">
   <div class="page-header">
@@ -527,7 +567,7 @@ input[type=checkbox]{width:15px;height:15px;cursor:pointer;accent-color:#1F3864}
 <script>
 const WEB_APP="https://script.google.com/macros/s/AKfycbz5NgRpJ8fbcFHROrp1uWkaR8eknIbItqQK60fRw3W-Bhh71f0dfvFnqE4LEs5h1aDp/exec";
 let DATA={registro:[],ops:[],pagos:[]};
-let editIdx={ev:undefined,op:undefined,pg:undefined};
+let editIdx={ev:undefined,op:undefined,pg:undefined,su:undefined};
 let chartInstance=null;
 let chartTipo="Matrícula";
 const VALOR_AUTO={TFM:40,OPER:2.5,RRHH:2.5,"Consulta Sincrónica":15};
@@ -583,7 +623,7 @@ function nav(name,btn){
   document.getElementById("sec-"+name).classList.add("active");
   btn.classList.add("active");
   ({dashboard:renderDashboard,registro:renderRegistro,"asignar-op":renderPendientes,
-    "asignar-pago":renderOPsPendientes,consultar:()=>{},ops:renderOpsH,pagos:renderPagosH})[name]?.();
+    "asignar-pago":renderOPsPendientes,consultar:()=>{},ops:renderOpsH,pagos:renderPagosH,sueldo:renderSueldos})[name]?.();
 }
 
 async function fetchAll(){
@@ -1182,6 +1222,70 @@ function consultarPago(){
   res.style.display="block";
 }
 
+
+// ── Sueldo ─────────────────────────────────────────────────────────
+function renderSueldos(){
+  const rows=DATA.registro.filter(r=>r.Programa==="Sueldo");
+  if(!rows.length){document.getElementById("sueldo-tbody").innerHTML='<tr class="empty-row"><td colspan="6">Sin sueldos registrados</td></tr>';return;}
+  document.getElementById("sueldo-tbody").innerHTML=rows.map(r=>{
+    const ri=DATA.registro.indexOf(r);
+    return`<tr>
+      <td><strong>${esc(r.Nombre)}</strong></td>
+      <td>${fmtFecha(r.Fecha_Evento)}</td>
+      <td style="text-align:right">${r.Valor_USD?fmt$(r.Valor_USD):"—"}</td>
+      <td><span class="badge ${PB[r.Estado_Pago]||"bgr"}">${esc(r.Estado_Pago)}</span></td>
+      <td class="tag" title="${esc(r.Notas)}">${esc(r.Notas)}</td>
+      <td><button class="btn btn-secondary btn-sm" onclick="editSueldo(${ri})">Editar</button></td>
+    </tr>`;
+  }).join("");
+}
+
+function limpiarSueldo(){
+  ["su-nombre","su-fecha","su-valor","su-notas"].forEach(id=>document.getElementById(id).value="");
+  document.getElementById("su-estpago").value="Pendiente";
+  editIdx.su=undefined;
+}
+
+function editSueldo(i){
+  const r=DATA.registro[i];
+  document.getElementById("su-nombre").value=r.Nombre||"";
+  const rawFecha=String(r.Fecha_Evento||"");
+  const isoMatch=rawFecha.match(/^(\d{4}-\d{2}-\d{2})/);
+  document.getElementById("su-fecha").value=isoMatch?isoMatch[1]:rawFecha;
+  document.getElementById("su-valor").value=r.Valor_USD||"";
+  document.getElementById("su-estpago").value=r.Estado_Pago||"Pendiente";
+  document.getElementById("su-notas").value=r.Notas||"";
+  editIdx.su=i;
+  document.querySelector("[onclick*=\x27sueldo\x27]").click();
+}
+
+async function guardarSueldo(){
+  const nombre=document.getElementById("su-nombre").value.trim();
+  const fecha=document.getElementById("su-fecha").value;
+  const valor=document.getElementById("su-valor").value;
+  const estpago=document.getElementById("su-estpago").value;
+  const notas=document.getElementById("su-notas").value.trim();
+  if(!nombre){toast("La descripción es obligatoria",false);return;}
+  if(!valor){toast("El valor es obligatorio",false);return;}
+  const data={
+    Alumno_ID:"",Nombre:nombre,Programa:"Sueldo",Orientacion:"",
+    Tipo_Evento:"Sueldo",Fecha_Evento:fecha,Estado_Alumno:"Activo",
+    Valor_USD:valor,Estado_Pago:estpago,OP_ID:"",Pago_ID:"",Notas:notas
+  };
+  document.getElementById("su-saving").style.display="inline-flex";
+  try{
+    let res;
+    if(editIdx.su!==undefined){
+      res=await post({action:"update_evento",rowIndex:editIdx.su,data});
+      if(res.ok) DATA.registro[editIdx.su]=data;
+    }else{
+      res=await post({action:"add_evento",data});
+      if(res.ok){DATA.registro.push(data);populateMesDropdowns();}
+    }
+    if(res.ok){toast("Sueldo guardado ✓");limpiarSueldo();renderSueldos();}else toast(res.error||"Error",false);
+  }catch(e){toast("Error de conexión",false);}
+  document.getElementById("su-saving").style.display="none";
+}
 // ── Init ───────────────────────────────────────────────────────────
 (async()=>{
   await fetchAll();
@@ -1191,3 +1295,4 @@ function consultarPago(){
 </script>
 </body>
 </html>
+
