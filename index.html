@@ -264,7 +264,7 @@ input[type=checkbox]{width:15px;height:15px;cursor:pointer;accent-color:#1F3864}
       </div>
       <div class="fg">
         <label>Tipo de evento *</label>
-        <select id="ev-tipo">
+        <select id="ev-tipo" onchange="onTipoChange()">
           <option value="">— Seleccionar —</option>
           <option>Matrícula</option><option>Egreso</option>
           <option>Consulta Sincrónica</option><option>Desarrollo Curso</option>
@@ -288,7 +288,6 @@ input[type=checkbox]{width:15px;height:15px;cursor:pointer;accent-color:#1F3864}
     </div>
   </div>
 </div>
-
 
 <!-- ═══════════════════ SUELDO ═══════════════════ -->
 <div class="section" id="sec-sueldo">
@@ -328,6 +327,7 @@ input[type=checkbox]{width:15px;height:15px;cursor:pointer;accent-color:#1F3864}
     </div>
   </div>
 </div>
+
 <!-- ═══════════════════ ASIGNAR OP ═══════════════════ -->
 <div class="section" id="sec-asignar-op">
   <div class="page-header">
@@ -570,7 +570,8 @@ let DATA={registro:[],ops:[],pagos:[]};
 let editIdx={ev:undefined,op:undefined,pg:undefined,su:undefined};
 let chartInstance=null;
 let chartTipo="Matrícula";
-const VALOR_AUTO={TFM:40,OPER:2.5,RRHH:2.5,"Consulta Sincrónica":15};
+const VALOR_MATRICULA_EGRESO={TFM:40,OPER:2.5,RRHH:2.5};
+const VALOR_CONSULTA=15;
 const PROGRAMAS=["TFM","OPER","RRHH","Consulta Sincrónica","Desarrollo Curso","Hub de impacto"];
 const PROG_COLORS={"TFM":"#185FA5","OPER":"#0F6E56","RRHH":"#7D6608","Consulta Sincrónica":"#993C1D","Desarrollo Curso":"#660066","Hub de impacto":"#0F5460"};
 const TB={"Matrícula":"bb","Egreso":"bg","Consulta Sincrónica":"ba","Desarrollo Curso":"bp"};
@@ -864,16 +865,36 @@ function autoEstado(){
   else{el.value="Pendiente";el.style.color="#993C1D";}
 }
 
+function calcularValorAuto(){
+  const prog=document.getElementById("ev-prog").value;
+  const tipo=document.getElementById("ev-tipo").value;
+  if(tipo==="Matrícula"||tipo==="Egreso") return VALOR_MATRICULA_EGRESO[prog]!==undefined?VALOR_MATRICULA_EGRESO[prog]:null;
+  if(tipo==="Consulta Sincrónica") return VALOR_CONSULTA;
+  return null; // manual: Desarrollo Curso, Hub de impacto, o sin tipo
+}
+
 function onProgChange(){
   const prog=document.getElementById("ev-prog").value;
   document.getElementById("orient-group").style.display=prog==="TFM"?"flex":"none";
   if(prog!=="TFM") document.getElementById("ev-orient").value="";
+  onTipoChange(); // recalculate valor when program changes too
+}
+
+function onTipoChange(){
+  const prog=document.getElementById("ev-prog").value;
+  const tipo=document.getElementById("ev-tipo").value;
   const vf=document.getElementById("ev-valor");
-  if(prog==="Desarrollo Curso"||prog==="Hub de impacto"){
-    vf.removeAttribute("readonly");vf.style.background="";vf.style.color="";vf.placeholder="Ingresar monto";vf.value="";
-  }else{
+  const esManual=tipo==="Desarrollo Curso"||tipo==="Hub de impacto"||(tipo!==""&&calcularValorAuto()===null&&prog!=="");
+  const val=calcularValorAuto();
+  if(val!==null){
     vf.setAttribute("readonly","readonly");vf.style.background="#f7f7f7";vf.style.color="#999";vf.placeholder="Automático";
-    vf.value=VALOR_AUTO[prog]!==undefined?VALOR_AUTO[prog]:"";
+    vf.value=val;
+  }else if(tipo==="Desarrollo Curso"||tipo==="Hub de impacto"||tipo===""){
+    vf.removeAttribute("readonly");vf.style.background="";vf.style.color="";
+    vf.placeholder=tipo?"Ingresar monto":"Automático";
+    if(!vf.value||!isNaN(vf.value)) vf.value="";
+  }else{
+    vf.removeAttribute("readonly");vf.style.background="";vf.style.color="";vf.placeholder="Ingresar monto";vf.value="";
   }
 }
 
@@ -893,11 +914,13 @@ function editEvento(i){
   document.getElementById("ev-prog").value=r.Programa||"";onProgChange();
   document.getElementById("ev-orient").value=r.Orientacion||"";
   document.getElementById("ev-tipo").value=r.Tipo_Evento||"";document.getElementById("ev-estalu").value=r.Estado_Alumno||"Activo";
+  onTipoChange(); // recalculate valor based on tipo+programa
   // Store raw date for input[type=date]
   const rawFecha=String(r.Fecha_Evento||"");
   const isoMatch=rawFecha.match(/^(\d{4}-\d{2}-\d{2})/);
   document.getElementById("ev-fecha").value=isoMatch?isoMatch[1]:rawFecha;
-  if(r.Programa==="Desarrollo Curso"||r.Programa==="Hub de impacto") document.getElementById("ev-valor").value=r.Valor_USD||"";
+  // If valor is manual (no auto value), fill from stored data
+  if(calcularValorAuto()===null) document.getElementById("ev-valor").value=r.Valor_USD||"";
   document.getElementById("ev-op").value=r.OP_ID||"";document.getElementById("ev-pago").value=r.Pago_ID||"";
   document.getElementById("ev-notas").value=r.Notas||"";autoEstado();
   editIdx.ev=i;document.getElementById("form-title").textContent="Editar evento";
@@ -926,7 +949,27 @@ async function guardarEvento(){
     let res;
     if(editIdx.ev!==undefined){res=await post({action:"update_evento",rowIndex:editIdx.ev,data});if(res.ok)DATA.registro[editIdx.ev]=data;}
     else{res=await post({action:"add_evento",data});if(res.ok){DATA.registro.push(data);populateMesDropdowns();}}
-    if(res.ok){toast("Evento guardado ✓");limpiarEvento();}else toast(res.error||"Error",false);
+    if(res.ok){
+      // Si es un egreso y tiene Alumno_ID, actualizar Estado_Alumno de todos sus eventos previos
+      if(data.Tipo_Evento==="Egreso"&&data.Alumno_ID){
+        const previos=DATA.registro.filter((r,i)=>r.Alumno_ID===data.Alumno_ID&&i!==editIdx.ev);
+        let actualizados=0;
+        for(const r of previos){
+          if(r.Estado_Alumno!=="Egresado"){
+            const idx=DATA.registro.indexOf(r);
+            const updated={...r,Estado_Alumno:"Egresado"};
+            try{const res2=await post({action:"update_evento",rowIndex:idx,data:updated});
+              if(res2.ok){DATA.registro[idx]=updated;actualizados++;}
+            }catch(e){}
+          }
+        }
+        if(actualizados>0) toast(`Evento guardado ✓ · ${actualizados} evento${actualizados!==1?"s":""} anterior${actualizados!==1?"es":""} marcado${actualizados!==1?"s":""} como Egresado`);
+        else toast("Evento guardado ✓");
+      }else{
+        toast("Evento guardado ✓");
+      }
+      limpiarEvento();
+    }else toast(res.error||"Error",false);
   }catch(e){toast("Error de conexión",false);}
   document.getElementById("ev-saving").style.display="none";
 }
@@ -1256,7 +1299,7 @@ function editSueldo(i){
   document.getElementById("su-estpago").value=r.Estado_Pago||"Pendiente";
   document.getElementById("su-notas").value=r.Notas||"";
   editIdx.su=i;
-  document.querySelector("[onclick*=\x27sueldo\x27]").click();
+  document.querySelector("[onclick*='sueldo']").click();
 }
 
 async function guardarSueldo(){
@@ -1286,6 +1329,7 @@ async function guardarSueldo(){
   }catch(e){toast("Error de conexión",false);}
   document.getElementById("su-saving").style.display="none";
 }
+
 // ── Init ───────────────────────────────────────────────────────────
 (async()=>{
   await fetchAll();
@@ -1295,4 +1339,3 @@ async function guardarSueldo(){
 </script>
 </body>
 </html>
-
