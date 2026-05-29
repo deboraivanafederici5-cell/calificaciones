@@ -155,6 +155,7 @@ input[type=checkbox]{width:15px;height:15px;cursor:pointer;accent-color:#1F3864}
     <div class="kpi"><div class="kpi-label">Cobrado</div><div class="kpi-value green" id="kpi-cobrado">—</div></div>
     <div class="kpi"><div class="kpi-label">En OP</div><div class="kpi-value amber" id="kpi-enop">—</div></div>
     <div class="kpi"><div class="kpi-label">Sin OP</div><div class="kpi-value red" id="kpi-pendiente">—</div></div>
+    <div class="kpi"><div class="kpi-label">ARS sin convertir</div><div class="kpi-value" id="kpi-ars" style="color:#6b5ce7">—</div><div class="kpi-sub" id="kpi-ars-sub"></div></div>
   </div>
 
   <!-- Monthly breakdown -->
@@ -215,10 +216,10 @@ input[type=checkbox]{width:15px;height:15px;cursor:pointer;accent-color:#1F3864}
         <thead><tr>
           <th>ID</th><th>Nombre</th><th>Prog.</th><th>Orient.</th><th>Tipo</th>
           <th>Fecha</th><th>Est. alumno</th>
-          <th style="text-align:right">Valor</th><th>Pago</th>
+          <th style="text-align:right">Valor</th><th>Mon.</th><th>Pago</th>
           <th>OP_ID</th><th>Pago_ID</th><th>Notas</th><th></th>
         </tr></thead>
-        <tbody id="reg-tbody"><tr class="loading-row"><td colspan="13"><span class="spinner"></span></td></tr></tbody>
+        <tbody id="reg-tbody"><tr class="loading-row"><td colspan="14"><span class="spinner"></span></td></tr></tbody>
       </table>
     </div>
   </div>
@@ -275,7 +276,15 @@ input[type=checkbox]{width:15px;height:15px;cursor:pointer;accent-color:#1F3864}
         <select id="ev-estalu"><option>Activo</option><option>Egresado</option><option>Abandonado</option></select>
       </div>
       <div class="fg"><label>Fecha del evento</label><input type="date" id="ev-fecha"></div>
-      <div class="fg"><label>Valor USD</label><input type="number" id="ev-valor" placeholder="Automático" step="0.5" readonly style="background:#f7f7f7;color:#999"></div>
+      <div class="fg">
+        <label>Moneda</label>
+        <select id="ev-moneda" onchange="onMonedaChange()">
+          <option value="USD">USD — Dólares</option>
+          <option value="ARS">ARS — Pesos argentinos</option>
+        </select>
+      </div>
+      <div class="fg"><label id="ev-valor-label">Valor USD</label><input type="number" id="ev-valor" placeholder="Automático" step="0.5" readonly style="background:#f7f7f7;color:#999"></div>
+      <div class="fg" id="tc-group" style="display:none"><label>Tipo de cambio (ARS→USD)</label><input type="number" id="ev-tc" placeholder="Ej: 1200" step="1" oninput="onTCChange()"></div>
       <div class="fg"><label>Estado de pago (auto)</label><input type="text" id="ev-estpago" readonly style="font-weight:600"></div>
       <div class="fg"><label>OP_ID (si ya la tenés)</label><input type="text" id="ev-op" placeholder="P00000" oninput="autoEstado()"></div>
       <div class="fg"><label>Pago_ID (si ya lo tenés)</label><input type="text" id="ev-pago" placeholder="2026/00000" oninput="autoEstado()"></div>
@@ -580,6 +589,48 @@ const EB={"Activo":"bg","Egresado":"bb","Abandonado":"bgr"};
 
 // ── Utils ──────────────────────────────────────────────────────────
 function fmt$(n){return"$"+(parseFloat(n)||0).toFixed(2);}
+function fmtARS(n){return"$"+(parseFloat(n)||0).toLocaleString("es-AR",{minimumFractionDigits:2,maximumFractionDigits:2})+" ARS";}
+// Devuelve string formateado según moneda del registro
+function fmtValor(r){
+  const v=parseFloat(r.Valor_USD)||0;
+  const m=r.Moneda||"USD";
+  if(m==="ARS") return fmtARS(v);
+  return fmt$(v);
+}
+// Devuelve valor en USD: si ARS con TC lo convierte, si no devuelve null para ese registro
+function getValorUSD(r){
+  const v=parseFloat(r.Valor_USD)||0;
+  if((r.Moneda||"USD")==="ARS"){
+    const tc=parseFloat(r.TC_USD)||0;
+    return tc?v/tc:null; // null = ARS sin convertir
+  }
+  return v;
+}
+function onMonedaChange(){
+  const m=document.getElementById("ev-moneda").value;
+  const label=document.getElementById("ev-valor-label");
+  const tcGroup=document.getElementById("tc-group");
+  if(m==="ARS"){
+    label.textContent="Valor ARS";
+    tcGroup.style.display="flex";
+    // En ARS siempre es manual
+    const vf=document.getElementById("ev-valor");
+    vf.removeAttribute("readonly");vf.style.background="";vf.style.color="";vf.placeholder="Ingresar monto en ARS";
+  }else{
+    label.textContent="Valor USD";
+    tcGroup.style.display="none";
+    document.getElementById("ev-tc").value="";
+    onTipoChange(); // recalcular auto USD
+  }
+}
+function onTCChange(){
+  // Feedback visual del equivalente en USD
+  const ars=parseFloat(document.getElementById("ev-valor").value)||0;
+  const tc=parseFloat(document.getElementById("ev-tc").value)||0;
+  const tcInput=document.getElementById("ev-tc");
+  if(ars&&tc) tcInput.title="≈ "+fmt$(ars/tc)+" USD";
+  else tcInput.title="";
+}
 function esc(s){return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;");}
 function toast(msg,ok=true){const t=document.getElementById("toast");t.textContent=msg;t.className="toast"+(ok?"":" error")+" show";setTimeout(()=>t.classList.remove("show"),3200);}
 function normText(v){return String(v ?? "").trim();}
@@ -665,10 +716,25 @@ function renderDashboard(){
   });
 
   const activos=DATA.registro.filter(r=>r.Tipo_Evento==="Matrícula"&&r.Estado_Alumno==="Activo"&&(!progFil||r.Programa===progFil)).length;
-  const total=reg.reduce((a,r)=>a+(parseFloat(r.Valor_USD)||0),0);
-  const cobrado=reg.filter(r=>r.Estado_Pago==="Pagado").reduce((a,r)=>a+(parseFloat(r.Valor_USD)||0),0);
-  const enop=reg.filter(r=>r.Estado_Pago==="En_OP").reduce((a,r)=>a+(parseFloat(r.Valor_USD)||0),0);
-  const pend=reg.filter(r=>r.Estado_Pago==="Pendiente").reduce((a,r)=>a+(parseFloat(r.Valor_USD)||0),0);
+  // Separar USD (y ARS convertidos) de ARS sin TC
+  let total=0,cobrado=0,enop=0,pend=0,arsTotal=0,arsSinTC=0,arsConvertidos=0;
+  reg.forEach(r=>{
+    const usd=getValorUSD(r);
+    const arsRaw=parseFloat(r.Valor_USD)||0;
+    const esARS=(r.Moneda||"USD")==="ARS";
+    if(esARS&&usd===null){
+      // ARS sin tipo de cambio — va a bolsa separada
+      arsTotal+=arsRaw;
+      arsSinTC++;
+    }else{
+      const v=usd!==null?usd:arsRaw;
+      total+=v;
+      if(r.Estado_Pago==="Pagado")cobrado+=v;
+      else if(r.Estado_Pago==="En_OP")enop+=v;
+      else pend+=v;
+      if(esARS)arsConvertidos++;
+    }
+  });
 
   document.getElementById("kpi-activos").textContent=activos;
   document.getElementById("kpi-activos-sub").textContent=mesFil?`filtrado: ${mesLabel(mesFil)}`:"todos los programas";
@@ -677,13 +743,17 @@ function renderDashboard(){
   document.getElementById("kpi-cobrado").textContent=fmt$(cobrado);
   document.getElementById("kpi-enop").textContent=fmt$(enop);
   document.getElementById("kpi-pendiente").textContent=fmt$(pend);
+  document.getElementById("kpi-ars").textContent=arsSinTC?fmtARS(arsTotal):"—";
+  document.getElementById("kpi-ars-sub").textContent=arsSinTC?`${arsSinTC} evento${arsSinTC!==1?"s":""} sin TC`:(arsConvertidos?"convertidos a USD":"sin eventos ARS");
 
   // Monthly table
   const months={};
   reg.forEach(r=>{
     const m=getMes(r.Fecha_Evento);if(!m)return;
     if(!months[m])months[m]={mat:0,egr:0,con:0,cur:0,cob:0,enop:0,pend:0};
-    const v=parseFloat(r.Valor_USD)||0;
+    const usdV=getValorUSD(r);
+    const v=usdV!==null?usdV:0; // ARS sin TC no suma al total USD
+    const arsV=(r.Moneda||"USD")==="ARS"&&usdV===null?parseFloat(r.Valor_USD)||0:0;
     if(r.Tipo_Evento==="Matrícula")months[m].mat+=v;
     else if(r.Tipo_Evento==="Egreso")months[m].egr+=v;
     else if(r.Tipo_Evento==="Consulta Sincrónica")months[m].con+=v;
@@ -774,7 +844,8 @@ function renderRegistro(){
       <td><span class="badge ${TB[r.Tipo_Evento]||"bgr"}">${esc(r.Tipo_Evento)}</span></td>
       <td>${fmtFecha(r.Fecha_Evento)}</td>
       <td><span class="badge ${EB[r.Estado_Alumno]||"bgr"}">${esc(r.Estado_Alumno)}</span></td>
-      <td style="text-align:right">${r.Valor_USD?fmt$(r.Valor_USD):"—"}</td>
+      <td style="text-align:right">${fmtValor(r)}</td>
+      <td style="font-size:11px;color:${(r.Moneda||"USD")==="ARS"?"#6b5ce7":"#999"};font-weight:600">${r.Moneda||"USD"}</td>
       <td><span class="badge ${PB[r.Estado_Pago]||"bgr"}">${esc(r.Estado_Pago)}</span></td>
       <td style="font-size:12px">${esc(r.OP_ID)}</td>
       <td style="font-size:12px">${esc(r.Pago_ID)}</td>
@@ -899,7 +970,10 @@ function onTipoChange(){
 }
 
 function limpiarEvento(){
-  ["ev-id","ev-nombre","ev-fecha","ev-valor","ev-op","ev-pago","ev-notas"].forEach(id=>document.getElementById(id).value="");
+  ["ev-id","ev-nombre","ev-fecha","ev-valor","ev-tc","ev-op","ev-pago","ev-notas"].forEach(id=>document.getElementById(id).value="");
+  document.getElementById("ev-moneda").value="USD";
+  document.getElementById("ev-valor-label").textContent="Valor USD";
+  document.getElementById("tc-group").style.display="none";
   document.getElementById("ev-prog").value="";document.getElementById("ev-orient").value="";
   document.getElementById("orient-group").style.display="none";
   document.getElementById("ev-tipo").value="";document.getElementById("ev-estalu").value="Activo";
@@ -920,6 +994,9 @@ function editEvento(i){
   const isoMatch=rawFecha.match(/^(\d{4}-\d{2}-\d{2})/);
   document.getElementById("ev-fecha").value=isoMatch?isoMatch[1]:rawFecha;
   // If valor is manual (no auto value), fill from stored data
+  document.getElementById("ev-moneda").value=r.Moneda||"USD";
+  onMonedaChange();
+  document.getElementById("ev-tc").value=r.TC_USD||"";
   if(calcularValorAuto()===null) document.getElementById("ev-valor").value=r.Valor_USD||"";
   document.getElementById("ev-op").value=r.OP_ID||"";document.getElementById("ev-pago").value=r.Pago_ID||"";
   document.getElementById("ev-notas").value=r.Notas||"";autoEstado();
@@ -938,6 +1015,8 @@ async function guardarEvento(){
     Tipo_Evento:document.getElementById("ev-tipo").value,
     Fecha_Evento:fechaRaw,
     Estado_Alumno:document.getElementById("ev-estalu").value,
+    Moneda:document.getElementById("ev-moneda").value,
+    TC_USD:document.getElementById("ev-tc").value.trim()||"",
     Valor_USD:document.getElementById("ev-valor").value,
     Estado_Pago:pg?"Pagado":op?"En_OP":"Pendiente",
     OP_ID:op,Pago_ID:pg,
@@ -1275,7 +1354,8 @@ function renderSueldos(){
     return`<tr>
       <td><strong>${esc(r.Nombre)}</strong></td>
       <td>${fmtFecha(r.Fecha_Evento)}</td>
-      <td style="text-align:right">${r.Valor_USD?fmt$(r.Valor_USD):"—"}</td>
+      <td style="text-align:right">${fmtValor(r)}</td>
+      <td style="font-size:11px;color:${(r.Moneda||"USD")==="ARS"?"#6b5ce7":"#999"};font-weight:600">${r.Moneda||"USD"}</td>
       <td><span class="badge ${PB[r.Estado_Pago]||"bgr"}">${esc(r.Estado_Pago)}</span></td>
       <td class="tag" title="${esc(r.Notas)}">${esc(r.Notas)}</td>
       <td><button class="btn btn-secondary btn-sm" onclick="editSueldo(${ri})">Editar</button></td>
