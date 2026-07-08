@@ -110,7 +110,6 @@ input[type=checkbox]{width:15px;height:15px;cursor:pointer;accent-color:#1F3864}
     <button class="nav-btn active" onclick="nav('dashboard',this)">📊 &nbsp;Dashboard</button>
     <button class="nav-btn" onclick="nav('registro',this)">📋 &nbsp;Registro</button>
     <button class="nav-btn" onclick="nav('nuevo',this)">＋ &nbsp;Nuevo evento</button>
-    <button class="nav-btn" onclick="nav('sueldo',this)">💼 &nbsp;Sueldo</button>
   </div>
   <div class="nav-section">
     <div class="nav-label">Liquidaciones</div>
@@ -143,7 +142,7 @@ input[type=checkbox]{width:15px;height:15px;cursor:pointer;accent-color:#1F3864}
     <select id="d-prog" onchange="renderDashboard()">
       <option value="">Todos</option>
       <option>TFM</option><option>OPER</option><option>RRHH</option>
-      <option>Consulta Sincrónica</option><option>Desarrollo Curso</option><option>Hub de impacto</option><option>Sueldo</option>
+      <option>Consulta Sincrónica</option><option>Desarrollo Curso</option><option>Hub de impacto</option>
     </select>
     <button class="btn btn-secondary btn-sm" onclick="document.getElementById('d-mes').value='';document.getElementById('d-prog').value='';renderDashboard()">✕ Limpiar</button>
   </div>
@@ -155,7 +154,6 @@ input[type=checkbox]{width:15px;height:15px;cursor:pointer;accent-color:#1F3864}
     <div class="kpi"><div class="kpi-label">Cobrado</div><div class="kpi-value green" id="kpi-cobrado">—</div></div>
     <div class="kpi"><div class="kpi-label">En OP</div><div class="kpi-value amber" id="kpi-enop">—</div></div>
     <div class="kpi"><div class="kpi-label">Sin OP</div><div class="kpi-value red" id="kpi-pendiente">—</div></div>
-    <div class="kpi"><div class="kpi-label">ARS sin convertir</div><div class="kpi-value" id="kpi-ars" style="color:#6b5ce7">—</div><div class="kpi-sub" id="kpi-ars-sub"></div></div>
   </div>
 
   <!-- Monthly breakdown -->
@@ -198,7 +196,7 @@ input[type=checkbox]{width:15px;height:15px;cursor:pointer;accent-color:#1F3864}
     <select id="rb-prog" onchange="renderRegistro()">
       <option value="">Todos los programas</option>
       <option>TFM</option><option>OPER</option><option>RRHH</option>
-      <option>Consulta Sincrónica</option><option>Desarrollo Curso</option><option>Hub de impacto</option><option>Sueldo</option>
+      <option>Consulta Sincrónica</option><option>Desarrollo Curso</option><option>Hub de impacto</option>
     </select>
     <select id="rb-tipo" onchange="renderRegistro()">
       <option value="">Todos los tipos</option>
@@ -216,10 +214,10 @@ input[type=checkbox]{width:15px;height:15px;cursor:pointer;accent-color:#1F3864}
         <thead><tr>
           <th>ID</th><th>Nombre</th><th>Prog.</th><th>Orient.</th><th>Tipo</th>
           <th>Fecha</th><th>Est. alumno</th>
-          <th style="text-align:right">Valor</th><th>Mon.</th><th>Pago</th>
+          <th style="text-align:right">Valor</th><th>Pago</th>
           <th>OP_ID</th><th>Pago_ID</th><th>Notas</th><th></th>
         </tr></thead>
-        <tbody id="reg-tbody"><tr class="loading-row"><td colspan="14"><span class="spinner"></span></td></tr></tbody>
+        <tbody id="reg-tbody"><tr class="loading-row"><td colspan="13"><span class="spinner"></span></td></tr></tbody>
       </table>
     </div>
   </div>
@@ -260,12 +258,12 @@ input[type=checkbox]{width:15px;height:15px;cursor:pointer;accent-color:#1F3864}
         <label>Orientación TFM</label>
         <select id="ev-orient">
           <option value="">— Seleccionar —</option>
-          <option>FIN</option><option>EST</option><option>IB</option>
+          <option>FIN</option><option>EST</option><option>IB</option><option>GB</option>
         </select>
       </div>
       <div class="fg">
         <label>Tipo de evento *</label>
-        <select id="ev-tipo" onchange="onTipoChange()">
+        <select id="ev-tipo">
           <option value="">— Seleccionar —</option>
           <option>Matrícula</option><option>Egreso</option>
           <option>Consulta Sincrónica</option><option>Desarrollo Curso</option>
@@ -276,15 +274,7 @@ input[type=checkbox]{width:15px;height:15px;cursor:pointer;accent-color:#1F3864}
         <select id="ev-estalu"><option>Activo</option><option>Egresado</option><option>Abandonado</option></select>
       </div>
       <div class="fg"><label>Fecha del evento</label><input type="date" id="ev-fecha"></div>
-      <div class="fg">
-        <label>Moneda</label>
-        <select id="ev-moneda" onchange="onMonedaChange()">
-          <option value="USD">USD — Dólares</option>
-          <option value="ARS">ARS — Pesos argentinos</option>
-        </select>
-      </div>
-      <div class="fg"><label id="ev-valor-label">Valor USD</label><input type="number" id="ev-valor" placeholder="Automático" step="0.5" readonly style="background:#f7f7f7;color:#999"></div>
-      <div class="fg" id="tc-group" style="display:none"><label>Tipo de cambio (ARS→USD)</label><input type="number" id="ev-tc" placeholder="Ej: 1200" step="1" oninput="onTCChange()"></div>
+      <div class="fg"><label>Valor USD</label><input type="number" id="ev-valor" placeholder="Automático" step="0.5" readonly style="background:#f7f7f7;color:#999"></div>
       <div class="fg"><label>Estado de pago (auto)</label><input type="text" id="ev-estpago" readonly style="font-weight:600"></div>
       <div class="fg"><label>OP_ID (si ya la tenés)</label><input type="text" id="ev-op" placeholder="P00000" oninput="autoEstado()"></div>
       <div class="fg"><label>Pago_ID (si ya lo tenés)</label><input type="text" id="ev-pago" placeholder="2026/00000" oninput="autoEstado()"></div>
@@ -294,45 +284,6 @@ input[type=checkbox]{width:15px;height:15px;cursor:pointer;accent-color:#1F3864}
       <button class="btn btn-primary" onclick="guardarEvento()">Guardar evento</button>
       <button class="btn btn-secondary" onclick="limpiarEvento()">Limpiar</button>
       <span id="ev-saving" style="display:none;color:#999;font-size:13px"><span class="spinner"></span> Guardando…</span>
-    </div>
-  </div>
-</div>
-
-<!-- ═══════════════════ SUELDO ═══════════════════ -->
-<div class="section" id="sec-sueldo">
-  <div class="page-header">
-    <div><div class="page-title">Registrar Sueldo</div><div class="page-sub">Ingresá los pagos de sueldo manualmente</div></div>
-  </div>
-  <div class="card">
-    <div class="form-grid">
-      <div class="fg form-full">
-        <label>Descripción *</label>
-        <input type="text" id="su-nombre" placeholder="Ej: Sueldo enero 2026">
-      </div>
-      <div class="fg"><label>Fecha</label><input type="date" id="su-fecha"></div>
-      <div class="fg"><label>Valor USD *</label><input type="number" id="su-valor" placeholder="0.00" step="0.5"></div>
-      <div class="fg">
-        <label>Estado de pago</label>
-        <select id="su-estpago">
-          <option value="Pendiente">Pendiente</option>
-          <option value="Pagado">Pagado</option>
-        </select>
-      </div>
-      <div class="fg"><label>Notas</label><input type="text" id="su-notas" placeholder="Observaciones opcionales"></div>
-    </div>
-    <div class="actions">
-      <button class="btn btn-primary" onclick="guardarSueldo()">Guardar sueldo</button>
-      <button class="btn btn-secondary" onclick="limpiarSueldo()">Limpiar</button>
-      <span id="su-saving" style="display:none;color:#999;font-size:13px"><span class="spinner"></span> Guardando…</span>
-    </div>
-  </div>
-  <div class="card" style="padding:0;overflow:hidden;margin-top:0">
-    <div style="padding:12px 16px 8px;font-size:11px;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:.7px">Sueldos registrados</div>
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th>Descripción</th><th>Fecha</th><th style="text-align:right">Valor</th><th>Estado</th><th>Notas</th><th></th></tr></thead>
-        <tbody id="sueldo-tbody"><tr class="loading-row"><td colspan="6"><span class="spinner"></span></td></tr></tbody>
-      </table>
     </div>
   </div>
 </div>
@@ -576,11 +527,10 @@ input[type=checkbox]{width:15px;height:15px;cursor:pointer;accent-color:#1F3864}
 <script>
 const WEB_APP="https://script.google.com/macros/s/AKfycbz5NgRpJ8fbcFHROrp1uWkaR8eknIbItqQK60fRw3W-Bhh71f0dfvFnqE4LEs5h1aDp/exec";
 let DATA={registro:[],ops:[],pagos:[]};
-let editIdx={ev:undefined,op:undefined,pg:undefined,su:undefined};
+let editIdx={ev:undefined,op:undefined,pg:undefined};
 let chartInstance=null;
 let chartTipo="Matrícula";
-const VALOR_MATRICULA_EGRESO={TFM:40,OPER:2.5,RRHH:2.5};
-const VALOR_CONSULTA=15;
+const VALOR_AUTO={TFM:40,OPER:2.5,RRHH:10,"Consulta Sincrónica":15};
 const PROGRAMAS=["TFM","OPER","RRHH","Consulta Sincrónica","Desarrollo Curso","Hub de impacto"];
 const PROG_COLORS={"TFM":"#185FA5","OPER":"#0F6E56","RRHH":"#7D6608","Consulta Sincrónica":"#993C1D","Desarrollo Curso":"#660066","Hub de impacto":"#0F5460"};
 const TB={"Matrícula":"bb","Egreso":"bg","Consulta Sincrónica":"ba","Desarrollo Curso":"bp"};
@@ -589,59 +539,8 @@ const EB={"Activo":"bg","Egresado":"bb","Abandonado":"bgr"};
 
 // ── Utils ──────────────────────────────────────────────────────────
 function fmt$(n){return"$"+(parseFloat(n)||0).toFixed(2);}
-function fmtARS(n){return"$"+(parseFloat(n)||0).toLocaleString("es-AR",{minimumFractionDigits:2,maximumFractionDigits:2})+" ARS";}
-// Devuelve string formateado según moneda del registro
-function fmtValor(r){
-  const v=parseFloat(r.Valor_USD)||0;
-  const m=r.Moneda||"USD";
-  if(m==="ARS") return fmtARS(v);
-  return fmt$(v);
-}
-// Devuelve valor en USD: si ARS con TC lo convierte, si no devuelve null para ese registro
-function getValorUSD(r){
-  const v=parseFloat(r.Valor_USD)||0;
-  if((r.Moneda||"USD")==="ARS"){
-    const tc=parseFloat(r.TC_USD)||0;
-    return tc?v/tc:null; // null = ARS sin convertir
-  }
-  return v;
-}
-function onMonedaChange(){
-  const m=document.getElementById("ev-moneda").value;
-  const label=document.getElementById("ev-valor-label");
-  const tcGroup=document.getElementById("tc-group");
-  if(m==="ARS"){
-    label.textContent="Valor ARS";
-    tcGroup.style.display="flex";
-    // En ARS siempre es manual
-    const vf=document.getElementById("ev-valor");
-    vf.removeAttribute("readonly");vf.style.background="";vf.style.color="";vf.placeholder="Ingresar monto en ARS";
-  }else{
-    label.textContent="Valor USD";
-    tcGroup.style.display="none";
-    document.getElementById("ev-tc").value="";
-    onTipoChange(); // recalcular auto USD
-  }
-}
-function onTCChange(){
-  // Feedback visual del equivalente en USD
-  const ars=parseFloat(document.getElementById("ev-valor").value)||0;
-  const tc=parseFloat(document.getElementById("ev-tc").value)||0;
-  const tcInput=document.getElementById("ev-tc");
-  if(ars&&tc) tcInput.title="≈ "+fmt$(ars/tc)+" USD";
-  else tcInput.title="";
-}
 function esc(s){return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;");}
 function toast(msg,ok=true){const t=document.getElementById("toast");t.textContent=msg;t.className="toast"+(ok?"":" error")+" show";setTimeout(()=>t.classList.remove("show"),3200);}
-function normText(v){return String(v ?? "").trim();}
-function normPagoId(v){
-  const s=normText(v);
-  // Google Sheets a veces devuelve 2026/00128 como número 202600128.
-  // Esta normalización permite encontrarlo con o sin barra.
-  if(/^\d{9}$/.test(s)) return s.slice(0,4)+"/"+s.slice(4);
-  return s;
-}
-function normOpId(v){return normText(v);}
 
 function fmtFecha(raw){
   if(!raw) return "";
@@ -675,7 +574,7 @@ function nav(name,btn){
   document.getElementById("sec-"+name).classList.add("active");
   btn.classList.add("active");
   ({dashboard:renderDashboard,registro:renderRegistro,"asignar-op":renderPendientes,
-    "asignar-pago":renderOPsPendientes,consultar:()=>{},ops:renderOpsH,pagos:renderPagosH,sueldo:renderSueldos})[name]?.();
+    "asignar-pago":renderOPsPendientes,consultar:()=>{},ops:renderOpsH,pagos:renderPagosH})[name]?.();
 }
 
 async function fetchAll(){
@@ -716,25 +615,10 @@ function renderDashboard(){
   });
 
   const activos=DATA.registro.filter(r=>r.Tipo_Evento==="Matrícula"&&r.Estado_Alumno==="Activo"&&(!progFil||r.Programa===progFil)).length;
-  // Separar USD (y ARS convertidos) de ARS sin TC
-  let total=0,cobrado=0,enop=0,pend=0,arsTotal=0,arsSinTC=0,arsConvertidos=0;
-  reg.forEach(r=>{
-    const usd=getValorUSD(r);
-    const arsRaw=parseFloat(r.Valor_USD)||0;
-    const esARS=(r.Moneda||"USD")==="ARS";
-    if(esARS&&usd===null){
-      // ARS sin tipo de cambio — va a bolsa separada
-      arsTotal+=arsRaw;
-      arsSinTC++;
-    }else{
-      const v=usd!==null?usd:arsRaw;
-      total+=v;
-      if(r.Estado_Pago==="Pagado")cobrado+=v;
-      else if(r.Estado_Pago==="En_OP")enop+=v;
-      else pend+=v;
-      if(esARS)arsConvertidos++;
-    }
-  });
+  const total=reg.reduce((a,r)=>a+(parseFloat(r.Valor_USD)||0),0);
+  const cobrado=reg.filter(r=>r.Estado_Pago==="Pagado").reduce((a,r)=>a+(parseFloat(r.Valor_USD)||0),0);
+  const enop=reg.filter(r=>r.Estado_Pago==="En_OP").reduce((a,r)=>a+(parseFloat(r.Valor_USD)||0),0);
+  const pend=reg.filter(r=>r.Estado_Pago==="Pendiente").reduce((a,r)=>a+(parseFloat(r.Valor_USD)||0),0);
 
   document.getElementById("kpi-activos").textContent=activos;
   document.getElementById("kpi-activos-sub").textContent=mesFil?`filtrado: ${mesLabel(mesFil)}`:"todos los programas";
@@ -743,17 +627,13 @@ function renderDashboard(){
   document.getElementById("kpi-cobrado").textContent=fmt$(cobrado);
   document.getElementById("kpi-enop").textContent=fmt$(enop);
   document.getElementById("kpi-pendiente").textContent=fmt$(pend);
-  document.getElementById("kpi-ars").textContent=arsSinTC?fmtARS(arsTotal):"—";
-  document.getElementById("kpi-ars-sub").textContent=arsSinTC?`${arsSinTC} evento${arsSinTC!==1?"s":""} sin TC`:(arsConvertidos?"convertidos a USD":"sin eventos ARS");
 
   // Monthly table
   const months={};
   reg.forEach(r=>{
     const m=getMes(r.Fecha_Evento);if(!m)return;
     if(!months[m])months[m]={mat:0,egr:0,con:0,cur:0,cob:0,enop:0,pend:0};
-    const usdV=getValorUSD(r);
-    const v=usdV!==null?usdV:0; // ARS sin TC no suma al total USD
-    const arsV=(r.Moneda||"USD")==="ARS"&&usdV===null?parseFloat(r.Valor_USD)||0:0;
+    const v=parseFloat(r.Valor_USD)||0;
     if(r.Tipo_Evento==="Matrícula")months[m].mat+=v;
     else if(r.Tipo_Evento==="Egreso")months[m].egr+=v;
     else if(r.Tipo_Evento==="Consulta Sincrónica")months[m].con+=v;
@@ -844,8 +724,7 @@ function renderRegistro(){
       <td><span class="badge ${TB[r.Tipo_Evento]||"bgr"}">${esc(r.Tipo_Evento)}</span></td>
       <td>${fmtFecha(r.Fecha_Evento)}</td>
       <td><span class="badge ${EB[r.Estado_Alumno]||"bgr"}">${esc(r.Estado_Alumno)}</span></td>
-      <td style="text-align:right">${fmtValor(r)}</td>
-      <td style="font-size:11px;color:${(r.Moneda||"USD")==="ARS"?"#6b5ce7":"#999"};font-weight:600">${r.Moneda||"USD"}</td>
+      <td style="text-align:right">${r.Valor_USD?fmt$(r.Valor_USD):"—"}</td>
       <td><span class="badge ${PB[r.Estado_Pago]||"bgr"}">${esc(r.Estado_Pago)}</span></td>
       <td style="font-size:12px">${esc(r.OP_ID)}</td>
       <td style="font-size:12px">${esc(r.Pago_ID)}</td>
@@ -936,44 +815,21 @@ function autoEstado(){
   else{el.value="Pendiente";el.style.color="#993C1D";}
 }
 
-function calcularValorAuto(){
-  const prog=document.getElementById("ev-prog").value;
-  const tipo=document.getElementById("ev-tipo").value;
-  if(tipo==="Matrícula"||tipo==="Egreso") return VALOR_MATRICULA_EGRESO[prog]!==undefined?VALOR_MATRICULA_EGRESO[prog]:null;
-  if(tipo==="Consulta Sincrónica") return VALOR_CONSULTA;
-  return null; // manual: Desarrollo Curso, Hub de impacto, o sin tipo
-}
-
 function onProgChange(){
   const prog=document.getElementById("ev-prog").value;
   document.getElementById("orient-group").style.display=prog==="TFM"?"flex":"none";
   if(prog!=="TFM") document.getElementById("ev-orient").value="";
-  onTipoChange(); // recalculate valor when program changes too
-}
-
-function onTipoChange(){
-  const prog=document.getElementById("ev-prog").value;
-  const tipo=document.getElementById("ev-tipo").value;
   const vf=document.getElementById("ev-valor");
-  const esManual=tipo==="Desarrollo Curso"||tipo==="Hub de impacto"||(tipo!==""&&calcularValorAuto()===null&&prog!=="");
-  const val=calcularValorAuto();
-  if(val!==null){
-    vf.setAttribute("readonly","readonly");vf.style.background="#f7f7f7";vf.style.color="#999";vf.placeholder="Automático";
-    vf.value=val;
-  }else if(tipo==="Desarrollo Curso"||tipo==="Hub de impacto"||tipo===""){
-    vf.removeAttribute("readonly");vf.style.background="";vf.style.color="";
-    vf.placeholder=tipo?"Ingresar monto":"Automático";
-    if(!vf.value||!isNaN(vf.value)) vf.value="";
-  }else{
+  if(prog==="Desarrollo Curso"||prog==="Hub de impacto"){
     vf.removeAttribute("readonly");vf.style.background="";vf.style.color="";vf.placeholder="Ingresar monto";vf.value="";
+  }else{
+    vf.setAttribute("readonly","readonly");vf.style.background="#f7f7f7";vf.style.color="#999";vf.placeholder="Automático";
+    vf.value=VALOR_AUTO[prog]!==undefined?VALOR_AUTO[prog]:"";
   }
 }
 
 function limpiarEvento(){
-  ["ev-id","ev-nombre","ev-fecha","ev-valor","ev-tc","ev-op","ev-pago","ev-notas"].forEach(id=>document.getElementById(id).value="");
-  document.getElementById("ev-moneda").value="USD";
-  document.getElementById("ev-valor-label").textContent="Valor USD";
-  document.getElementById("tc-group").style.display="none";
+  ["ev-id","ev-nombre","ev-fecha","ev-valor","ev-op","ev-pago","ev-notas"].forEach(id=>document.getElementById(id).value="");
   document.getElementById("ev-prog").value="";document.getElementById("ev-orient").value="";
   document.getElementById("orient-group").style.display="none";
   document.getElementById("ev-tipo").value="";document.getElementById("ev-estalu").value="Activo";
@@ -988,16 +844,11 @@ function editEvento(i){
   document.getElementById("ev-prog").value=r.Programa||"";onProgChange();
   document.getElementById("ev-orient").value=r.Orientacion||"";
   document.getElementById("ev-tipo").value=r.Tipo_Evento||"";document.getElementById("ev-estalu").value=r.Estado_Alumno||"Activo";
-  onTipoChange(); // recalculate valor based on tipo+programa
   // Store raw date for input[type=date]
   const rawFecha=String(r.Fecha_Evento||"");
   const isoMatch=rawFecha.match(/^(\d{4}-\d{2}-\d{2})/);
   document.getElementById("ev-fecha").value=isoMatch?isoMatch[1]:rawFecha;
-  // If valor is manual (no auto value), fill from stored data
-  document.getElementById("ev-moneda").value=r.Moneda||"USD";
-  onMonedaChange();
-  document.getElementById("ev-tc").value=r.TC_USD||"";
-  if(calcularValorAuto()===null) document.getElementById("ev-valor").value=r.Valor_USD||"";
+  if(r.Programa==="Desarrollo Curso"||r.Programa==="Hub de impacto") document.getElementById("ev-valor").value=r.Valor_USD||"";
   document.getElementById("ev-op").value=r.OP_ID||"";document.getElementById("ev-pago").value=r.Pago_ID||"";
   document.getElementById("ev-notas").value=r.Notas||"";autoEstado();
   editIdx.ev=i;document.getElementById("form-title").textContent="Editar evento";
@@ -1015,8 +866,6 @@ async function guardarEvento(){
     Tipo_Evento:document.getElementById("ev-tipo").value,
     Fecha_Evento:fechaRaw,
     Estado_Alumno:document.getElementById("ev-estalu").value,
-    Moneda:document.getElementById("ev-moneda").value,
-    TC_USD:document.getElementById("ev-tc").value.trim()||"",
     Valor_USD:document.getElementById("ev-valor").value,
     Estado_Pago:pg?"Pagado":op?"En_OP":"Pendiente",
     OP_ID:op,Pago_ID:pg,
@@ -1028,27 +877,7 @@ async function guardarEvento(){
     let res;
     if(editIdx.ev!==undefined){res=await post({action:"update_evento",rowIndex:editIdx.ev,data});if(res.ok)DATA.registro[editIdx.ev]=data;}
     else{res=await post({action:"add_evento",data});if(res.ok){DATA.registro.push(data);populateMesDropdowns();}}
-    if(res.ok){
-      // Si es un egreso y tiene Alumno_ID, actualizar Estado_Alumno de todos sus eventos previos
-      if(data.Tipo_Evento==="Egreso"&&data.Alumno_ID){
-        const previos=DATA.registro.filter((r,i)=>r.Alumno_ID===data.Alumno_ID&&i!==editIdx.ev);
-        let actualizados=0;
-        for(const r of previos){
-          if(r.Estado_Alumno!=="Egresado"){
-            const idx=DATA.registro.indexOf(r);
-            const updated={...r,Estado_Alumno:"Egresado"};
-            try{const res2=await post({action:"update_evento",rowIndex:idx,data:updated});
-              if(res2.ok){DATA.registro[idx]=updated;actualizados++;}
-            }catch(e){}
-          }
-        }
-        if(actualizados>0) toast(`Evento guardado ✓ · ${actualizados} evento${actualizados!==1?"s":""} anterior${actualizados!==1?"es":""} marcado${actualizados!==1?"s":""} como Egresado`);
-        else toast("Evento guardado ✓");
-      }else{
-        toast("Evento guardado ✓");
-      }
-      limpiarEvento();
-    }else toast(res.error||"Error",false);
+    if(res.ok){toast("Evento guardado ✓");limpiarEvento();}else toast(res.error||"Error",false);
   }catch(e){toast("Error de conexión",false);}
   document.getElementById("ev-saving").style.display="none";
 }
@@ -1261,7 +1090,7 @@ function consultarOP(){
   res.style.display="none"; empty.style.display="none"; totalEl.textContent="";
   if(!opId) return;
 
-  const rows=DATA.registro.filter(r=>normOpId(r.OP_ID)===opId);
+  const rows=DATA.registro.filter(r=>(r.OP_ID||"").trim()===opId);
   if(!rows.length){empty.style.display="block";return;}
 
   const total=rows.reduce((a,r)=>a+(parseFloat(r.Valor_USD)||0),0);
@@ -1287,22 +1116,27 @@ function consultarOP(){
 }
 
 function consultarPago(){
-  const pagoId=normPagoId(document.getElementById("cons-pagoid").value);
+  const pagoId=document.getElementById("cons-pagoid").value.trim();
   const res=document.getElementById("cons-pago-result");
   const empty=document.getElementById("cons-pago-empty");
   const totalEl=document.getElementById("cons-pago-total");
   res.style.display="none"; empty.style.display="none"; totalEl.textContent="";
   if(!pagoId) return;
 
-  // Búsqueda robusta: Pago_ID puede llegar desde Google Sheets como texto (2026/00128)
-  // o como número si Sheets perdió el formato de texto (202600128).
-  const rows=DATA.registro.filter(r=>normPagoId(r.Pago_ID)===pagoId);
+  // Debug: mostrar todos los Pago_ID únicos que hay en el registro
+  const todosLosPagoIds=[...new Set(DATA.registro.map(r=>r.Pago_ID||"").filter(Boolean))];
+  console.log("Pago_IDs en REGISTRO:", todosLosPagoIds);
+  console.log("Buscando:", JSON.stringify(pagoId));
+  console.log("Match exacto:", todosLosPagoIds.filter(p=>p===pagoId));
+  console.log("Match normalizado:", todosLosPagoIds.filter(p=>p.trim()===pagoId.trim()));
+
+  const rows=DATA.registro.filter(r=>(r.Pago_ID||"").trim()===pagoId.trim());
   if(!rows.length){empty.style.display="block";return;}
 
   // Agrupar por OP
   const opMap={};
   rows.forEach(r=>{
-    const op=normOpId(r.OP_ID)||"(sin OP)";
+    const op=r.OP_ID||"(sin OP)";
     if(!opMap[op]) opMap[op]={tipo:r.Tipo_Evento,mes:getMes(r.Fecha_Evento),count:0,total:0};
     opMap[op].count++;
     opMap[op].total+=parseFloat(r.Valor_USD)||0;
@@ -1342,72 +1176,6 @@ function consultarPago(){
     `<span><strong>${opList.length}</strong> OP${opList.length!==1?"s":""} · <strong>${rows.length}</strong> evento${rows.length!==1?"s":""}</span>`+
     `<span style="margin-left:auto">Total: <strong>${fmt$(totalPago)}</strong></span>`;
   res.style.display="block";
-}
-
-
-// ── Sueldo ─────────────────────────────────────────────────────────
-function renderSueldos(){
-  const rows=DATA.registro.filter(r=>r.Programa==="Sueldo");
-  if(!rows.length){document.getElementById("sueldo-tbody").innerHTML='<tr class="empty-row"><td colspan="6">Sin sueldos registrados</td></tr>';return;}
-  document.getElementById("sueldo-tbody").innerHTML=rows.map(r=>{
-    const ri=DATA.registro.indexOf(r);
-    return`<tr>
-      <td><strong>${esc(r.Nombre)}</strong></td>
-      <td>${fmtFecha(r.Fecha_Evento)}</td>
-      <td style="text-align:right">${fmtValor(r)}</td>
-      <td style="font-size:11px;color:${(r.Moneda||"USD")==="ARS"?"#6b5ce7":"#999"};font-weight:600">${r.Moneda||"USD"}</td>
-      <td><span class="badge ${PB[r.Estado_Pago]||"bgr"}">${esc(r.Estado_Pago)}</span></td>
-      <td class="tag" title="${esc(r.Notas)}">${esc(r.Notas)}</td>
-      <td><button class="btn btn-secondary btn-sm" onclick="editSueldo(${ri})">Editar</button></td>
-    </tr>`;
-  }).join("");
-}
-
-function limpiarSueldo(){
-  ["su-nombre","su-fecha","su-valor","su-notas"].forEach(id=>document.getElementById(id).value="");
-  document.getElementById("su-estpago").value="Pendiente";
-  editIdx.su=undefined;
-}
-
-function editSueldo(i){
-  const r=DATA.registro[i];
-  document.getElementById("su-nombre").value=r.Nombre||"";
-  const rawFecha=String(r.Fecha_Evento||"");
-  const isoMatch=rawFecha.match(/^(\d{4}-\d{2}-\d{2})/);
-  document.getElementById("su-fecha").value=isoMatch?isoMatch[1]:rawFecha;
-  document.getElementById("su-valor").value=r.Valor_USD||"";
-  document.getElementById("su-estpago").value=r.Estado_Pago||"Pendiente";
-  document.getElementById("su-notas").value=r.Notas||"";
-  editIdx.su=i;
-  document.querySelector("[onclick*='sueldo']").click();
-}
-
-async function guardarSueldo(){
-  const nombre=document.getElementById("su-nombre").value.trim();
-  const fecha=document.getElementById("su-fecha").value;
-  const valor=document.getElementById("su-valor").value;
-  const estpago=document.getElementById("su-estpago").value;
-  const notas=document.getElementById("su-notas").value.trim();
-  if(!nombre){toast("La descripción es obligatoria",false);return;}
-  if(!valor){toast("El valor es obligatorio",false);return;}
-  const data={
-    Alumno_ID:"",Nombre:nombre,Programa:"Sueldo",Orientacion:"",
-    Tipo_Evento:"Sueldo",Fecha_Evento:fecha,Estado_Alumno:"Activo",
-    Valor_USD:valor,Estado_Pago:estpago,OP_ID:"",Pago_ID:"",Notas:notas
-  };
-  document.getElementById("su-saving").style.display="inline-flex";
-  try{
-    let res;
-    if(editIdx.su!==undefined){
-      res=await post({action:"update_evento",rowIndex:editIdx.su,data});
-      if(res.ok) DATA.registro[editIdx.su]=data;
-    }else{
-      res=await post({action:"add_evento",data});
-      if(res.ok){DATA.registro.push(data);populateMesDropdowns();}
-    }
-    if(res.ok){toast("Sueldo guardado ✓");limpiarSueldo();renderSueldos();}else toast(res.error||"Error",false);
-  }catch(e){toast("Error de conexión",false);}
-  document.getElementById("su-saving").style.display="none";
 }
 
 // ── Init ───────────────────────────────────────────────────────────
