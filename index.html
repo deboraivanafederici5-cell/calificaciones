@@ -148,6 +148,7 @@ input[type=checkbox]{width:15px;height:15px;cursor:pointer;accent-color:#1F3864}
   </div>
 
   <!-- KPIs -->
+  <div class="card-title" style="margin:4px 0 8px">En dólares (USD)</div>
   <div class="kpi-grid">
     <div class="kpi"><div class="kpi-label">Alumnos activos</div><div class="kpi-value blue" id="kpi-activos">—</div><div class="kpi-sub" id="kpi-activos-sub"></div></div>
     <div class="kpi"><div class="kpi-label">Total estimado</div><div class="kpi-value navy" id="kpi-total">—</div><div class="kpi-sub" id="kpi-total-sub"></div></div>
@@ -156,13 +157,36 @@ input[type=checkbox]{width:15px;height:15px;cursor:pointer;accent-color:#1F3864}
     <div class="kpi"><div class="kpi-label">Sin OP</div><div class="kpi-value red" id="kpi-pendiente">—</div></div>
   </div>
 
+  <!-- KPIs ARS (solo se muestra si hay eventos cargados en pesos) -->
+  <div id="kpi-grid-ars-wrap" style="display:none">
+    <div class="card-title" style="margin:16px 0 8px">En pesos (ARS)</div>
+    <div class="kpi-grid">
+      <div class="kpi"><div class="kpi-label">Eventos en ARS</div><div class="kpi-value blue" id="kpi-activos-ars">—</div></div>
+      <div class="kpi"><div class="kpi-label">Total estimado</div><div class="kpi-value navy" id="kpi-total-ars">—</div></div>
+      <div class="kpi"><div class="kpi-label">Cobrado</div><div class="kpi-value green" id="kpi-cobrado-ars">—</div></div>
+      <div class="kpi"><div class="kpi-label">En OP</div><div class="kpi-value amber" id="kpi-enop-ars">—</div></div>
+      <div class="kpi"><div class="kpi-label">Sin OP</div><div class="kpi-value red" id="kpi-pendiente-ars">—</div></div>
+    </div>
+  </div>
+
   <!-- Monthly breakdown -->
   <div class="card">
-    <div class="card-title">Liquidaciones por mes</div>
+    <div class="card-title">Liquidaciones por mes — USD</div>
     <div class="table-wrap">
       <table class="month-table">
         <thead><tr><th style="text-align:left">Mes</th><th>Matrículas</th><th>Egresos</th><th>Consultas</th><th>Cursos</th><th>Total</th><th>Estado pago</th></tr></thead>
         <tbody id="month-tbody"><tr class="loading-row"><td colspan="7"><span class="spinner"></span></td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Monthly breakdown ARS -->
+  <div class="card" id="month-card-ars" style="display:none">
+    <div class="card-title">Liquidaciones por mes — ARS</div>
+    <div class="table-wrap">
+      <table class="month-table">
+        <thead><tr><th style="text-align:left">Mes</th><th>Matrículas</th><th>Egresos</th><th>Consultas</th><th>Cursos</th><th>Total</th><th>Estado pago</th></tr></thead>
+        <tbody id="month-tbody-ars"></tbody>
       </table>
     </div>
   </div>
@@ -274,7 +298,12 @@ input[type=checkbox]{width:15px;height:15px;cursor:pointer;accent-color:#1F3864}
         <select id="ev-estalu"><option>Activo</option><option>Egresado</option><option>Abandonado</option></select>
       </div>
       <div class="fg"><label>Fecha del evento</label><input type="date" id="ev-fecha"></div>
-      <div class="fg"><label>Valor USD</label><input type="number" id="ev-valor" placeholder="Automático" step="0.5" readonly style="background:#f7f7f7;color:#999"></div>
+      <div class="fg"><label>Moneda</label>
+        <select id="ev-moneda" onchange="onMonedaChange()"><option value="USD">USD</option><option value="ARS">ARS</option></select>
+      </div>
+      <div class="fg" id="tc-group" style="display:none"><label>Tipo de cambio (USD)</label><input type="number" id="ev-tc" placeholder="Ej: 1250" step="0.01" oninput="onTcOrValorInput()"></div>
+      <div class="fg"><label id="ev-valor-label">Valor USD</label><input type="number" id="ev-valor" placeholder="Automático" step="0.5" readonly style="background:#f7f7f7;color:#999" oninput="onTcOrValorInput()"></div>
+      <div class="fg" id="valorusd-group" style="display:none"><label>Valor USD (calculado)</label><input type="text" id="ev-valorusd-calc" readonly style="background:#f7f7f7;color:#999;font-weight:600"></div>
       <div class="fg"><label>Estado de pago (auto)</label><input type="text" id="ev-estpago" readonly style="font-weight:600"></div>
       <div class="fg"><label>OP_ID (si ya la tenés)</label><input type="text" id="ev-op" placeholder="P00000" oninput="autoEstado()"></div>
       <div class="fg"><label>Pago_ID (si ya lo tenés)</label><input type="text" id="ev-pago" placeholder="2026/00000" oninput="autoEstado()"></div>
@@ -539,6 +568,7 @@ const EB={"Activo":"bg","Egresado":"bb","Abandonado":"bgr"};
 
 // ── Utils ──────────────────────────────────────────────────────────
 function fmt$(n){return"$"+(parseFloat(n)||0).toFixed(2);}
+function fmtARS(n){return"$"+(parseFloat(n)||0).toLocaleString("es-AR",{minimumFractionDigits:2,maximumFractionDigits:2})+" ARS";}
 function esc(s){return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;");}
 function toast(msg,ok=true){const t=document.getElementById("toast");t.textContent=msg;t.className="toast"+(ok?"":" error")+" show";setTimeout(()=>t.classList.remove("show"),3200);}
 
@@ -605,6 +635,42 @@ function populateMesDropdowns(){
 }
 
 // ── Dashboard ──────────────────────────────────────────────────────
+function buildMonthly(rows,valueFn){
+  const months={};
+  rows.forEach(r=>{
+    const m=getMes(r.Fecha_Evento);if(!m)return;
+    if(!months[m])months[m]={mat:0,egr:0,con:0,cur:0,cob:0,enop:0,pend:0};
+    const v=valueFn(r);
+    if(r.Tipo_Evento==="Matrícula")months[m].mat+=v;
+    else if(r.Tipo_Evento==="Egreso")months[m].egr+=v;
+    else if(r.Tipo_Evento==="Consulta Sincrónica")months[m].con+=v;
+    else months[m].cur+=v;
+    if(r.Estado_Pago==="Pagado")months[m].cob+=v;
+    else if(r.Estado_Pago==="En_OP")months[m].enop+=v;
+    else months[m].pend+=v;
+  });
+  return months;
+}
+
+function renderMonthlyTable(tbodyId,months,fmtFn){
+  const sorted=Object.keys(months).sort((a,b)=>{const[ma,ya]=a.split("/");const[mb,yb]=b.split("/");return(ya-yb)||(ma-mb);});
+  let tM=0,tE=0,tC=0,tCu=0;
+  const rows=sorted.map(mes=>{
+    const d=months[mes];tM+=d.mat;tE+=d.egr;tC+=d.con;tCu+=d.cur;
+    const tot=d.mat+d.egr+d.con+d.cur;
+    const c=v=>v?fmtFn(v):`<span class="muted">—</span>`;
+    const estadoHtml=`<span class="badge bg" style="font-size:10px">${fmtFn(d.cob)}</span> `+
+      (d.enop?`<span class="badge ba" style="font-size:10px">${fmtFn(d.enop)}</span> `:"")+
+      (d.pend?`<span class="badge br" style="font-size:10px">${fmtFn(d.pend)}</span>`:"");
+    return`<tr><td>${mesLabel(mes)}</td><td>${c(d.mat)}</td><td>${c(d.egr)}</td><td>${c(d.con)}</td><td>${c(d.cur)}</td><td><strong>${fmtFn(tot)}</strong></td><td>${estadoHtml}</td></tr>`;
+  }).join("");
+  const totTot=tM+tE+tC+tCu;
+  const tbody=document.getElementById(tbodyId);
+  tbody.innerHTML=rows||'<tr class="empty-row"><td colspan="7">Sin datos para este filtro</td></tr>';
+  if(rows) tbody.innerHTML+=
+    `<tr class="total-row"><td>TOTAL</td><td>${fmtFn(tM)}</td><td>${fmtFn(tE)}</td><td>${fmtFn(tC)}</td><td>${fmtFn(tCu)}</td><td>${fmtFn(totTot)}</td><td></td></tr>`;
+}
+
 function renderDashboard(){
   const mesFil=document.getElementById("d-mes").value;
   const progFil=document.getElementById("d-prog").value;
@@ -613,12 +679,22 @@ function renderDashboard(){
     if(progFil&&r.Programa!==progFil)return false;
     return true;
   });
+  // Separamos USD (o sin moneda registrada) de ARS para no mezclar totales
+  const regUSD=reg.filter(r=>r.Moneda!=="ARS");
+  const regARS=reg.filter(r=>r.Moneda==="ARS");
+  // Si el evento está en ARS pero no tiene TC_USD cargado (dato legacy sin convertir),
+  // asumimos que Valor_USD ya contiene el monto crudo en pesos, en vez de multiplicar por 0.
+  const valArs=r=>{
+    const usd=parseFloat(r.Valor_USD)||0;
+    const tc=parseFloat(r.TC_USD)||0;
+    return tc>0?usd*tc:usd;
+  };
 
   const activos=DATA.registro.filter(r=>r.Tipo_Evento==="Matrícula"&&r.Estado_Alumno==="Activo"&&(!progFil||r.Programa===progFil)).length;
-  const total=reg.reduce((a,r)=>a+(parseFloat(r.Valor_USD)||0),0);
-  const cobrado=reg.filter(r=>r.Estado_Pago==="Pagado").reduce((a,r)=>a+(parseFloat(r.Valor_USD)||0),0);
-  const enop=reg.filter(r=>r.Estado_Pago==="En_OP").reduce((a,r)=>a+(parseFloat(r.Valor_USD)||0),0);
-  const pend=reg.filter(r=>r.Estado_Pago==="Pendiente").reduce((a,r)=>a+(parseFloat(r.Valor_USD)||0),0);
+  const total=regUSD.reduce((a,r)=>a+(parseFloat(r.Valor_USD)||0),0);
+  const cobrado=regUSD.filter(r=>r.Estado_Pago==="Pagado").reduce((a,r)=>a+(parseFloat(r.Valor_USD)||0),0);
+  const enop=regUSD.filter(r=>r.Estado_Pago==="En_OP").reduce((a,r)=>a+(parseFloat(r.Valor_USD)||0),0);
+  const pend=regUSD.filter(r=>r.Estado_Pago==="Pendiente").reduce((a,r)=>a+(parseFloat(r.Valor_USD)||0),0);
 
   document.getElementById("kpi-activos").textContent=activos;
   document.getElementById("kpi-activos-sub").textContent=mesFil?`filtrado: ${mesLabel(mesFil)}`:"todos los programas";
@@ -628,35 +704,24 @@ function renderDashboard(){
   document.getElementById("kpi-enop").textContent=fmt$(enop);
   document.getElementById("kpi-pendiente").textContent=fmt$(pend);
 
-  // Monthly table
-  const months={};
-  reg.forEach(r=>{
-    const m=getMes(r.Fecha_Evento);if(!m)return;
-    if(!months[m])months[m]={mat:0,egr:0,con:0,cur:0,cob:0,enop:0,pend:0};
-    const v=parseFloat(r.Valor_USD)||0;
-    if(r.Tipo_Evento==="Matrícula")months[m].mat+=v;
-    else if(r.Tipo_Evento==="Egreso")months[m].egr+=v;
-    else if(r.Tipo_Evento==="Consulta Sincrónica")months[m].con+=v;
-    else months[m].cur+=v;
-    if(r.Estado_Pago==="Pagado")months[m].cob+=v;
-    else if(r.Estado_Pago==="En_OP")months[m].enop+=v;
-    else months[m].pend+=v;
-  });
-  const sorted=Object.keys(months).sort((a,b)=>{const[ma,ya]=a.split("/");const[mb,yb]=b.split("/");return(ya-yb)||(ma-mb);});
-  let tM=0,tE=0,tC=0,tCu=0,tCob=0,tEnop=0,tPend=0;
-  const rows=sorted.map(mes=>{
-    const d=months[mes];tM+=d.mat;tE+=d.egr;tC+=d.con;tCu+=d.cur;tCob+=d.cob;tEnop+=d.enop;tPend+=d.pend;
-    const tot=d.mat+d.egr+d.con+d.cur;
-    const c=v=>v?fmt$(v):`<span class="muted">—</span>`;
-    const estadoHtml=`<span class="badge bg" style="font-size:10px">${fmt$(d.cob)}</span> `+
-      (d.enop?`<span class="badge ba" style="font-size:10px">${fmt$(d.enop)}</span> `:"")+
-      (d.pend?`<span class="badge br" style="font-size:10px">${fmt$(d.pend)}</span>`:"");
-    return`<tr><td>${mesLabel(mes)}</td><td>${c(d.mat)}</td><td>${c(d.egr)}</td><td>${c(d.con)}</td><td>${c(d.cur)}</td><td><strong>${fmt$(tot)}</strong></td><td>${estadoHtml}</td></tr>`;
-  }).join("");
-  const totTot=tM+tE+tC+tCu;
-  document.getElementById("month-tbody").innerHTML=rows||'<tr class="empty-row"><td colspan="7">Sin datos para este filtro</td></tr>';
-  if(rows) document.getElementById("month-tbody").innerHTML+=
-    `<tr class="total-row"><td>TOTAL</td><td>${fmt$(tM)}</td><td>${fmt$(tE)}</td><td>${fmt$(tC)}</td><td>${fmt$(tCu)}</td><td>${fmt$(totTot)}</td><td></td></tr>`;
+  // KPIs en pesos (ARS) — solo se muestran si hay eventos cargados en esa moneda
+  const totalArs=regARS.reduce((a,r)=>a+valArs(r),0);
+  const cobradoArs=regARS.filter(r=>r.Estado_Pago==="Pagado").reduce((a,r)=>a+valArs(r),0);
+  const enopArs=regARS.filter(r=>r.Estado_Pago==="En_OP").reduce((a,r)=>a+valArs(r),0);
+  const pendArs=regARS.filter(r=>r.Estado_Pago==="Pendiente").reduce((a,r)=>a+valArs(r),0);
+  document.getElementById("kpi-grid-ars-wrap").style.display=regARS.length?"block":"none";
+  document.getElementById("month-card-ars").style.display=regARS.length?"block":"none";
+  if(regARS.length){
+    document.getElementById("kpi-activos-ars").textContent=regARS.length;
+    document.getElementById("kpi-total-ars").textContent=fmtARS(totalArs);
+    document.getElementById("kpi-cobrado-ars").textContent=fmtARS(cobradoArs);
+    document.getElementById("kpi-enop-ars").textContent=fmtARS(enopArs);
+    document.getElementById("kpi-pendiente-ars").textContent=fmtARS(pendArs);
+  }
+
+  // Tablas mensuales, separadas por moneda
+  renderMonthlyTable("month-tbody",buildMonthly(regUSD,r=>parseFloat(r.Valor_USD)||0),fmt$);
+  if(regARS.length) renderMonthlyTable("month-tbody-ars",buildMonthly(regARS,valArs),fmtARS);
 
   renderChart();
 }
@@ -724,7 +789,7 @@ function renderRegistro(){
       <td><span class="badge ${TB[r.Tipo_Evento]||"bgr"}">${esc(r.Tipo_Evento)}</span></td>
       <td>${fmtFecha(r.Fecha_Evento)}</td>
       <td><span class="badge ${EB[r.Estado_Alumno]||"bgr"}">${esc(r.Estado_Alumno)}</span></td>
-      <td style="text-align:right">${r.Valor_USD?fmt$(r.Valor_USD):"—"}</td>
+      <td style="text-align:right">${r.Valor_USD?fmt$(r.Valor_USD):"—"}${r.Moneda==="ARS"?(r.TC_USD?`<br><span style="font-size:10px;color:#999">ARS @${esc(r.TC_USD)}</span>`:`<br><span style="font-size:10px;color:#b91c1c;font-weight:600">⚠ ARS sin TC</span>`):""}</td>
       <td><span class="badge ${PB[r.Estado_Pago]||"bgr"}">${esc(r.Estado_Pago)}</span></td>
       <td style="font-size:12px">${esc(r.OP_ID)}</td>
       <td style="font-size:12px">${esc(r.Pago_ID)}</td>
@@ -819,20 +884,62 @@ function onProgChange(){
   const prog=document.getElementById("ev-prog").value;
   document.getElementById("orient-group").style.display=prog==="TFM"?"flex":"none";
   if(prog!=="TFM") document.getElementById("ev-orient").value="";
-  const vf=document.getElementById("ev-valor");
-  if(prog==="Desarrollo Curso"||prog==="Hub de impacto"){
-    vf.removeAttribute("readonly");vf.style.background="";vf.style.color="";vf.placeholder="Ingresar monto";vf.value="";
-  }else{
-    vf.setAttribute("readonly","readonly");vf.style.background="#f7f7f7";vf.style.color="#999";vf.placeholder="Automático";
-    vf.value=VALOR_AUTO[prog]!==undefined?VALOR_AUTO[prog]:"";
-  }
+  updateValorField();
 }
 
+// ── Moneda / Valor ────────────────────────────────────────────────
+function updateValorField(){
+  const prog=document.getElementById("ev-prog").value;
+  const moneda=document.getElementById("ev-moneda").value;
+  const vf=document.getElementById("ev-valor");
+  const lbl=document.getElementById("ev-valor-label");
+  const tcGroup=document.getElementById("tc-group");
+  const calcGroup=document.getElementById("valorusd-group");
+  const auto=VALOR_AUTO[prog];
+
+  tcGroup.style.display=moneda==="ARS"?"flex":"none";
+  calcGroup.style.display=moneda==="ARS"?"flex":"none";
+
+  if(moneda==="ARS"){
+    lbl.textContent="Valor (ARS)";
+    vf.removeAttribute("readonly");vf.style.background="";vf.style.color="";
+    vf.placeholder=auto!==undefined?`Monto en pesos (ref. auto USD $${auto})`:"Monto en pesos";
+    if(prog!=="Desarrollo Curso"&&prog!=="Hub de impacto"&&auto!==undefined&&parseFloat(vf.value)===auto){
+      vf.value="";
+    }
+  }else{
+    lbl.textContent="Valor USD";
+    if(prog==="Desarrollo Curso"||prog==="Hub de impacto"){
+      vf.removeAttribute("readonly");vf.style.background="";vf.style.color="";vf.placeholder="Ingresar monto";
+    }else{
+      vf.setAttribute("readonly","readonly");vf.style.background="#f7f7f7";vf.style.color="#999";vf.placeholder="Automático";
+      vf.value=auto!==undefined?auto:"";
+    }
+  }
+  updateValorUsdCalc();
+}
+
+function updateValorUsdCalc(){
+  const moneda=document.getElementById("ev-moneda").value;
+  const calc=document.getElementById("ev-valorusd-calc");
+  if(moneda!=="ARS"){calc.value="";return;}
+  const val=parseFloat(document.getElementById("ev-valor").value);
+  const tc=parseFloat(document.getElementById("ev-tc").value);
+  calc.value=(val&&tc)?fmt$(val/tc):"—";
+}
+
+function onMonedaChange(){updateValorField();}
+function onTcOrValorInput(){updateValorUsdCalc();}
+
 function limpiarEvento(){
-  ["ev-id","ev-nombre","ev-fecha","ev-valor","ev-op","ev-pago","ev-notas"].forEach(id=>document.getElementById(id).value="");
+  ["ev-id","ev-nombre","ev-fecha","ev-valor","ev-tc","ev-op","ev-pago","ev-notas"].forEach(id=>document.getElementById(id).value="");
   document.getElementById("ev-prog").value="";document.getElementById("ev-orient").value="";
   document.getElementById("orient-group").style.display="none";
   document.getElementById("ev-tipo").value="";document.getElementById("ev-estalu").value="Activo";
+  document.getElementById("ev-moneda").value="USD";
+  document.getElementById("tc-group").style.display="none";
+  document.getElementById("valorusd-group").style.display="none";
+  document.getElementById("ev-valor-label").textContent="Valor USD";
   const el=document.getElementById("ev-estpago");el.value="Pendiente";el.style.color="#993C1D";
   const vf=document.getElementById("ev-valor");vf.setAttribute("readonly","readonly");vf.style.background="#f7f7f7";vf.style.color="#999";vf.placeholder="Automático";
   document.getElementById("form-title").textContent="Nuevo evento";editIdx.ev=undefined;
@@ -849,6 +956,15 @@ function editEvento(i){
   const isoMatch=rawFecha.match(/^(\d{4}-\d{2}-\d{2})/);
   document.getElementById("ev-fecha").value=isoMatch?isoMatch[1]:rawFecha;
   if(r.Programa==="Desarrollo Curso"||r.Programa==="Hub de impacto") document.getElementById("ev-valor").value=r.Valor_USD||"";
+  document.getElementById("ev-moneda").value=r.Moneda||"USD";onMonedaChange();
+  if((r.Moneda||"USD")==="ARS"){
+    document.getElementById("ev-tc").value=r.TC_USD||"";
+    const usd=parseFloat(r.Valor_USD)||0,tc=parseFloat(r.TC_USD)||0;
+    // Si ya tenía TC cargado, Valor_USD es el equivalente en dólares y hay que reconstruir el monto en ARS.
+    // Si no tenía TC (dato legacy), Valor_USD ya es el monto crudo en pesos: se muestra tal cual.
+    document.getElementById("ev-valor").value=tc?(usd*tc).toFixed(2):(usd||"");
+    updateValorUsdCalc();
+  }
   document.getElementById("ev-op").value=r.OP_ID||"";document.getElementById("ev-pago").value=r.Pago_ID||"";
   document.getElementById("ev-notas").value=r.Notas||"";autoEstado();
   editIdx.ev=i;document.getElementById("form-title").textContent="Editar evento";
@@ -858,6 +974,15 @@ function editEvento(i){
 async function guardarEvento(){
   const op=document.getElementById("ev-op").value.trim();const pg=document.getElementById("ev-pago").value.trim();
   const fechaRaw=document.getElementById("ev-fecha").value; // yyyy-mm-dd from date input
+  const moneda=document.getElementById("ev-moneda").value;
+  const valorIngresado=parseFloat(document.getElementById("ev-valor").value)||0;
+  let valorUSD=valorIngresado, tcUsd="";
+  if(moneda==="ARS"){
+    const tc=parseFloat(document.getElementById("ev-tc").value)||0;
+    if(!valorIngresado||!tc){toast("Ingresá el monto en ARS y el tipo de cambio",false);return;}
+    valorUSD=Math.round((valorIngresado/tc)*100)/100;
+    tcUsd=tc;
+  }
   const data={
     Alumno_ID:document.getElementById("ev-id").value.trim(),
     Nombre:document.getElementById("ev-nombre").value.trim(),
@@ -866,7 +991,9 @@ async function guardarEvento(){
     Tipo_Evento:document.getElementById("ev-tipo").value,
     Fecha_Evento:fechaRaw,
     Estado_Alumno:document.getElementById("ev-estalu").value,
-    Valor_USD:document.getElementById("ev-valor").value,
+    Moneda:moneda,
+    TC_USD:tcUsd,
+    Valor_USD:valorUSD,
     Estado_Pago:pg?"Pagado":op?"En_OP":"Pendiente",
     OP_ID:op,Pago_ID:pg,
     Notas:document.getElementById("ev-notas").value.trim(),
@@ -875,11 +1002,50 @@ async function guardarEvento(){
   document.getElementById("ev-saving").style.display="inline-flex";
   try{
     let res;
-    if(editIdx.ev!==undefined){res=await post({action:"update_evento",rowIndex:editIdx.ev,data});if(res.ok)DATA.registro[editIdx.ev]=data;}
-    else{res=await post({action:"add_evento",data});if(res.ok){DATA.registro.push(data);populateMesDropdowns();}}
+    if(editIdx.ev!==undefined){
+      const idx=editIdx.ev;
+      res=await post({action:"update_evento",rowIndex:idx,data});
+      if(res.ok){
+        DATA.registro[idx]=data;
+        if(data.Estado_Alumno==="Egresado") await propagarEgreso(data.Alumno_ID,data.Nombre,idx);
+      }
+    }else{
+      res=await post({action:"add_evento",data});
+      if(res.ok){
+        DATA.registro.push(data);
+        const idx=DATA.registro.length-1;
+        populateMesDropdowns();
+        if(data.Estado_Alumno==="Egresado") await propagarEgreso(data.Alumno_ID,data.Nombre,idx);
+      }
+    }
     if(res.ok){toast("Evento guardado ✓");limpiarEvento();}else toast(res.error||"Error",false);
   }catch(e){toast("Error de conexión",false);}
   document.getElementById("ev-saving").style.display="none";
+}
+
+// ── Propagar Egreso: al marcar un evento como Egresado, actualiza
+// todos los eventos previos Activos del mismo alumno ────────────────
+async function propagarEgreso(alumnoId,nombre,currentIdx){
+  const norm=s=>(s||"").toString().trim().toLowerCase();
+  const targets=[];
+  DATA.registro.forEach((r,i)=>{
+    if(i===currentIdx)return;
+    if(r.Estado_Alumno!=="Activo")return;
+    const mismoId=alumnoId&&norm(r.Alumno_ID)===norm(alumnoId);
+    const mismoNombre=!alumnoId&&nombre&&norm(r.Nombre)===norm(nombre);
+    if(mismoId||mismoNombre)targets.push(i);
+  });
+  if(!targets.length)return;
+  let ok=0,err=0;
+  for(const idx of targets){
+    const updated={...DATA.registro[idx],Estado_Alumno:"Egresado"};
+    try{
+      const res=await post({action:"update_evento",rowIndex:idx,data:updated});
+      if(res.ok){DATA.registro[idx]=updated;ok++;}else err++;
+    }catch(e){err++;}
+  }
+  if(ok)toast(`✓ Estado actualizado a Egresado en ${ok} evento${ok!==1?"s":""} anterior${ok!==1?"es":""} de ${nombre||alumnoId}`);
+  if(err)toast(`${err} error${err!==1?"es":""} al actualizar eventos anteriores`,false);
 }
 
 // ── Asignar OP ─────────────────────────────────────────────────────
