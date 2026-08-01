@@ -121,6 +121,7 @@ input[type=checkbox]{width:15px;height:15px;cursor:pointer;accent-color:#1F3864}
     <button class="nav-btn" onclick="nav('consultar',this)">🔍 &nbsp;Consultar</button>
     <button class="nav-btn" onclick="nav('ops',this)">📁 &nbsp;OPs</button>
     <button class="nav-btn" onclick="nav('pagos',this)">📁 &nbsp;Pagos</button>
+    <button class="nav-btn" onclick="nav('sueldos',this)">💵 &nbsp;Sueldo</button>
   </div>
 </nav>
 
@@ -520,13 +521,55 @@ input[type=checkbox]{width:15px;height:15px;cursor:pointer;accent-color:#1F3864}
   </div>
 </div>
 
+<!-- ═══════════════════ SUELDOS ═══════════════════ -->
+<div class="section" id="sec-sueldos">
+  <div>
+    <div class="page-title">Sueldo mensual</div>
+    <div class="page-sub">Registro de tu sueldo fijo de ADEN, mes a mes</div>
+  </div>
+
+  <!-- Formulario -->
+  <div class="card">
+    <div class="card-title" id="sueldo-form-title">Registrar sueldo</div>
+    <div class="form-grid" style="grid-template-columns:1fr 1fr 1fr 1fr">
+      <div class="fg"><label>Mes</label><input type="month" id="su-mes"></div>
+      <div class="fg"><label>Moneda</label>
+        <select id="su-moneda"><option value="USD">USD</option><option value="ARS">ARS</option></select>
+      </div>
+      <div class="fg"><label>Monto</label><input type="number" id="su-monto" step="0.01" placeholder="Monto del sueldo"></div>
+      <div class="fg"><label>Cobrado</label>
+        <select id="su-cobrado"><option value="No">No</option><option value="Sí">Sí</option></select>
+      </div>
+      <div class="fg"><label>Fecha de cobro</label><input type="date" id="su-fecha-cobro"></div>
+      <div class="fg"><label>Notas</label><input type="text" id="su-notas" placeholder="Opcional"></div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:12px;align-items:center">
+      <button class="btn btn-primary" onclick="guardarSueldo()">Guardar</button>
+      <button class="btn btn-secondary" onclick="limpiarSueldo()">Limpiar</button>
+      <span id="su-saving" style="display:none" class="spinner"></span>
+    </div>
+  </div>
+
+  <!-- Historial -->
+  <div class="card">
+    <div class="card-title">Historial de sueldos</div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Mes</th><th>Moneda</th><th style="text-align:right">Monto</th><th>Cobrado</th><th>Fecha cobro</th><th>Notas</th><th></th></tr></thead>
+        <tbody id="sueldos-tbody"><tr class="loading-row"><td colspan="7"><span class="spinner"></span></td></tr></tbody>
+      </table>
+    </div>
+    <div class="status-bar" id="sueldos-status"></div>
+  </div>
+</div>
+
 </main>
 </div>
 <div class="toast" id="toast"></div>
 
 <script>
 const WEB_APP="https://script.google.com/macros/s/AKfycbz5NgRpJ8fbcFHROrp1uWkaR8eknIbItqQK60fRw3W-Bhh71f0dfvFnqE4LEs5h1aDp/exec";
-let DATA={registro:[],ops:[],pagos:[]};
+let DATA={registro:[],ops:[],pagos:[],sueldos:[]};
 let editIdx={ev:undefined,op:undefined,pg:undefined};
 let chartInstance=null;
 let chartTipo="Matrícula";
@@ -574,12 +617,12 @@ function nav(name,btn){
   document.getElementById("sec-"+name).classList.add("active");
   btn.classList.add("active");
   ({dashboard:renderDashboard,registro:renderRegistro,"asignar-op":renderPendientes,
-    "asignar-pago":renderOPsPendientes,consultar:()=>{},ops:renderOpsH,pagos:renderPagosH})[name]?.();
+    "asignar-pago":renderOPsPendientes,consultar:()=>{},ops:renderOpsH,pagos:renderPagosH,sueldos:renderSueldos})[name]?.();
 }
 
 async function fetchAll(){
   try{const r=await fetch(WEB_APP+"?action=all");const j=await r.json();
-    if(j.ok){DATA.registro=j.registro||[];DATA.ops=j.ops||[];DATA.pagos=j.pagos||[];populateMesDropdowns();}
+    if(j.ok){DATA.registro=j.registro||[];DATA.ops=j.ops||[];DATA.pagos=j.pagos||[];DATA.sueldos=j.sueldos||[];populateMesDropdowns();}
     else toast("Error cargando datos",false);
   }catch(e){toast("Sin conexión con Google Sheets",false);}
 }
@@ -1185,10 +1228,99 @@ function consultarPago(){
   res.style.display="block";
 }
 
+// ── Sueldos ───────────────────────────────────────────────────────
+let editIdx_sueldo;
+
+function renderSueldos(){
+  const rows=DATA.sueldos;
+  if(!rows.length){
+    document.getElementById("sueldos-tbody").innerHTML='<tr class="empty-row"><td colspan="7">No hay sueldos registrados</td></tr>';
+    document.getElementById("sueldos-status").innerHTML="";
+    return;
+  }
+  // Ordenar por mes descendente
+  const sorted=rows.map((r,i)=>({...r,_idx:i})).sort((a,b)=>(b.Mes||"").localeCompare(a.Mes||""));
+  const fmtMes=m=>{if(!m)return"—";const[y,mo]=String(m).split("-");const names=["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];return`${names[parseInt(mo)-1]||mo} ${y}`;};
+  document.getElementById("sueldos-tbody").innerHTML=sorted.map(r=>{
+    const mon=r.Moneda||"USD";
+    const monto=parseFloat(r.Monto)||0;
+    const fmtMonto=mon==="ARS"?fmtARS(monto):fmt$(monto);
+    const cobBadge=r.Cobrado==="Sí"?'<span class="badge bg">Sí</span>':'<span class="badge br">No</span>';
+    return`<tr>
+      <td><strong>${fmtMes(r.Mes)}</strong></td>
+      <td>${mon}</td>
+      <td style="text-align:right">${fmtMonto}</td>
+      <td>${cobBadge}</td>
+      <td>${r.Fecha_Cobro?fmtFecha(r.Fecha_Cobro):"—"}</td>
+      <td class="tag" title="${esc(r.Notas)}">${esc(r.Notas)}</td>
+      <td><button class="btn-edit" onclick="editSueldo(${r._idx})">Editar</button></td>
+    </tr>`;
+  }).join("");
+
+  const totalUSD=rows.filter(r=>(r.Moneda||"USD")!=="ARS").reduce((a,r)=>a+(parseFloat(r.Monto)||0),0);
+  const totalARS=rows.filter(r=>r.Moneda==="ARS").reduce((a,r)=>a+(parseFloat(r.Monto)||0),0);
+  const cobUSD=rows.filter(r=>(r.Moneda||"USD")!=="ARS"&&r.Cobrado==="Sí").reduce((a,r)=>a+(parseFloat(r.Monto)||0),0);
+  const cobARS=rows.filter(r=>r.Moneda==="ARS"&&r.Cobrado==="Sí").reduce((a,r)=>a+(parseFloat(r.Monto)||0),0);
+  let status=`<span><strong>${rows.length}</strong> registro${rows.length!==1?"s":""}</span>`;
+  status+=`<span style="margin-left:auto">Total USD: <strong>${fmt$(totalUSD)}</strong> (cobrado: ${fmt$(cobUSD)})</span>`;
+  if(totalARS) status+=`<span style="margin-left:12px">Total ARS: <strong>${fmtARS(totalARS)}</strong> (cobrado: ${fmtARS(cobARS)})</span>`;
+  document.getElementById("sueldos-status").innerHTML=status;
+}
+
+function editSueldo(i){
+  const r=DATA.sueldos[i];
+  editIdx_sueldo=i;
+  document.getElementById("sueldo-form-title").textContent="Editar sueldo";
+  document.getElementById("su-mes").value=r.Mes||"";
+  document.getElementById("su-moneda").value=r.Moneda||"USD";
+  document.getElementById("su-monto").value=r.Monto||"";
+  document.getElementById("su-cobrado").value=r.Cobrado||"No";
+  document.getElementById("su-fecha-cobro").value=r.Fecha_Cobro?r.Fecha_Cobro.slice(0,10):"";
+  document.getElementById("su-notas").value=r.Notas||"";
+  document.getElementById("sec-sueldos").scrollTo({top:0,behavior:"smooth"});
+}
+
+function limpiarSueldo(){
+  ["su-mes","su-monto","su-fecha-cobro","su-notas"].forEach(id=>document.getElementById(id).value="");
+  document.getElementById("su-moneda").value="USD";
+  document.getElementById("su-cobrado").value="No";
+  document.getElementById("sueldo-form-title").textContent="Registrar sueldo";
+  editIdx_sueldo=undefined;
+}
+
+async function guardarSueldo(){
+  const mes=document.getElementById("su-mes").value;
+  const monto=document.getElementById("su-monto").value;
+  if(!mes||!monto){toast("Mes y monto son obligatorios",false);return;}
+  const data={
+    Mes:mes,
+    Monto:parseFloat(monto),
+    Moneda:document.getElementById("su-moneda").value,
+    Cobrado:document.getElementById("su-cobrado").value,
+    Fecha_Cobro:document.getElementById("su-fecha-cobro").value,
+    Notas:document.getElementById("su-notas").value.trim(),
+  };
+  document.getElementById("su-saving").style.display="inline-flex";
+  try{
+    let res;
+    if(editIdx_sueldo!==undefined){
+      res=await post({action:"update_sueldo",rowIndex:editIdx_sueldo,data});
+      if(res.ok) DATA.sueldos[editIdx_sueldo]=data;
+    }else{
+      res=await post({action:"add_sueldo",data});
+      if(res.ok) DATA.sueldos.push(data);
+    }
+    if(res.ok){toast("Sueldo guardado ✓");limpiarSueldo();renderSueldos();}
+    else toast(res.error||"Error",false);
+  }catch(e){toast("Error de conexión",false);}
+  document.getElementById("su-saving").style.display="none";
+}
+
 // ── Init ───────────────────────────────────────────────────────────
 (async()=>{
   await fetchAll();
   renderDashboard();
+  renderSueldos();
   const el=document.getElementById("ev-estpago");el.value="Pendiente";el.style.color="#993C1D";
 })();
 </script>
