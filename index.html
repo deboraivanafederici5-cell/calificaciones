@@ -200,6 +200,7 @@ input[type=checkbox]{width:15px;height:15px;cursor:pointer;accent-color:#1F3864}
         <div class="chart-tabs">
           <button class="chart-tab active" onclick="setChartTipo('Matrícula',this)">Matrículas</button>
           <button class="chart-tab" onclick="setChartTipo('Egreso',this)">Egresos</button>
+          <button class="chart-tab" onclick="setChartTipo('Consulta Sincrónica',this)">Consultas</button>
         </div>
         <select id="chart-year" onchange="renderChart()" style="width:90px;font-size:12px;padding:5px 8px">
           <option value="2026">2026</option><option value="2027">2027</option>
@@ -686,11 +687,11 @@ function buildMonthly(rows,valueFn){
   const months={};
   rows.forEach(r=>{
     const m=getMes(r.Fecha_Evento);if(!m)return;
-    if(!months[m])months[m]={mat:0,egr:0,con:0,cur:0,cob:0,enop:0,pend:0};
+    if(!months[m])months[m]={mat:0,egr:0,con:0,cur:0,cob:0,enop:0,pend:0,conCount:0};
     const v=valueFn(r);
     if(r.Tipo_Evento==="Matrícula")months[m].mat+=v;
     else if(r.Tipo_Evento==="Egreso")months[m].egr+=v;
-    else if(r.Tipo_Evento==="Consulta Sincrónica")months[m].con+=v;
+    else if(r.Tipo_Evento==="Consulta Sincrónica"){months[m].con+=v;months[m].conCount++;}
     else months[m].cur+=v;
     if(r.Estado_Pago==="Pagado")months[m].cob+=v;
     else if(r.Estado_Pago==="En_OP")months[m].enop+=v;
@@ -701,21 +702,22 @@ function buildMonthly(rows,valueFn){
 
 function renderMonthlyTable(tbodyId,months,fmtFn){
   const sorted=Object.keys(months).sort((a,b)=>{const[ma,ya]=a.split("/");const[mb,yb]=b.split("/");return(ya-yb)||(ma-mb);});
-  let tM=0,tE=0,tC=0,tCu=0;
+  let tM=0,tE=0,tC=0,tCu=0,tConCount=0;
   const rows=sorted.map(mes=>{
-    const d=months[mes];tM+=d.mat;tE+=d.egr;tC+=d.con;tCu+=d.cur;
+    const d=months[mes];tM+=d.mat;tE+=d.egr;tC+=d.con;tCu+=d.cur;tConCount+=d.conCount;
     const tot=d.mat+d.egr+d.con+d.cur;
     const c=v=>v?fmtFn(v):`<span class="muted">—</span>`;
+    const conCell=d.con?`${fmtFn(d.con)}<br><span style="font-size:10px;color:#999">${d.conCount} clase${d.conCount!==1?"s":""}</span>`:`<span class="muted">—</span>`;
     const estadoHtml=`<span class="badge bg" style="font-size:10px">${fmtFn(d.cob)}</span> `+
       (d.enop?`<span class="badge ba" style="font-size:10px">${fmtFn(d.enop)}</span> `:"")+
       (d.pend?`<span class="badge br" style="font-size:10px">${fmtFn(d.pend)}</span>`:"");
-    return`<tr><td>${mesLabel(mes)}</td><td>${c(d.mat)}</td><td>${c(d.egr)}</td><td>${c(d.con)}</td><td>${c(d.cur)}</td><td><strong>${fmtFn(tot)}</strong></td><td>${estadoHtml}</td></tr>`;
+    return`<tr><td>${mesLabel(mes)}</td><td>${c(d.mat)}</td><td>${c(d.egr)}</td><td>${conCell}</td><td>${c(d.cur)}</td><td><strong>${fmtFn(tot)}</strong></td><td>${estadoHtml}</td></tr>`;
   }).join("");
   const totTot=tM+tE+tC+tCu;
   const tbody=document.getElementById(tbodyId);
   tbody.innerHTML=rows||'<tr class="empty-row"><td colspan="7">Sin datos para este filtro</td></tr>';
   if(rows) tbody.innerHTML+=
-    `<tr class="total-row"><td>TOTAL</td><td>${fmtFn(tM)}</td><td>${fmtFn(tE)}</td><td>${fmtFn(tC)}</td><td>${fmtFn(tCu)}</td><td>${fmtFn(totTot)}</td><td></td></tr>`;
+    `<tr class="total-row"><td>TOTAL</td><td>${fmtFn(tM)}</td><td>${fmtFn(tE)}</td><td>${fmtFn(tC)}<br><span style="font-size:10px;font-weight:400;color:#999">${tConCount} clase${tConCount!==1?"s":""}</span></td><td>${fmtFn(tCu)}</td><td>${fmtFn(totTot)}</td><td></td></tr>`;
 }
 
 function renderDashboard(){
@@ -786,17 +788,28 @@ function setChartTipo(tipo,btn){
 function renderChart(){
   const year=document.getElementById("chart-year").value;
   const progFil=document.getElementById("d-prog").value;
-  const progs=progFil?[progFil]:PROGRAMAS.filter(p=>p!=="Consulta Sincrónica"&&p!=="Desarrollo Curso"&&p!=="Hub de impacto");
   const months=Array.from({length:12},(_,i)=>String(i+1).padStart(2,"0")+"/"+year);
-
-  const datasets=progs.map(prog=>({
-    label:prog,
-    data:months.map(mes=>DATA.registro.filter(r=>r.Programa===prog&&r.Tipo_Evento===chartTipo&&getMes(r.Fecha_Evento)===mes).length),
-    backgroundColor:PROG_COLORS[prog]||"#aaa",
-    borderRadius:4,
-  }));
-
   const labels=months.map(m=>mesLabel(m));
+
+  let datasets;
+  if(chartTipo==="Consulta Sincrónica"){
+    // Las consultas son un solo "programa": una sola serie con la cantidad de clases por mes
+    datasets=[{
+      label:"Consultas sincrónicas",
+      data:months.map(mes=>DATA.registro.filter(r=>r.Tipo_Evento==="Consulta Sincrónica"&&getMes(r.Fecha_Evento)===mes).length),
+      backgroundColor:PROG_COLORS["Consulta Sincrónica"]||"#aaa",
+      borderRadius:4,
+    }];
+  }else{
+    const progs=progFil?[progFil]:PROGRAMAS.filter(p=>p!=="Consulta Sincrónica"&&p!=="Desarrollo Curso"&&p!=="Hub de impacto");
+    datasets=progs.map(prog=>({
+      label:prog,
+      data:months.map(mes=>DATA.registro.filter(r=>r.Programa===prog&&r.Tipo_Evento===chartTipo&&getMes(r.Fecha_Evento)===mes).length),
+      backgroundColor:PROG_COLORS[prog]||"#aaa",
+      borderRadius:4,
+    }));
+  }
+
   const ctx=document.getElementById("evolucion-chart").getContext("2d");
   if(chartInstance) chartInstance.destroy();
   chartInstance=new Chart(ctx,{
