@@ -143,7 +143,7 @@ input[type=checkbox]{width:15px;height:15px;cursor:pointer;accent-color:#1F3864}
     <select id="d-prog" onchange="renderDashboard()">
       <option value="">Todos</option>
       <option>TFM</option><option>OPER</option><option>RRHH</option>
-      <option>Consulta Sincrónica</option><option>Desarrollo Curso</option><option>Hub de impacto</option>
+      <option>Consulta Sincrónica</option><option>Desarrollo Curso</option><option>Hub de impacto</option><option>MAO</option>
     </select>
     <button class="btn btn-secondary btn-sm" onclick="document.getElementById('d-mes').value='';document.getElementById('d-prog').value='';renderDashboard()">✕ Limpiar</button>
   </div>
@@ -222,7 +222,7 @@ input[type=checkbox]{width:15px;height:15px;cursor:pointer;accent-color:#1F3864}
     <select id="rb-prog" onchange="renderRegistro()">
       <option value="">Todos los programas</option>
       <option>TFM</option><option>OPER</option><option>RRHH</option>
-      <option>Consulta Sincrónica</option><option>Desarrollo Curso</option><option>Hub de impacto</option>
+      <option>Consulta Sincrónica</option><option>Desarrollo Curso</option><option>Hub de impacto</option><option>MAO</option>
     </select>
     <select id="rb-tipo" onchange="renderRegistro()">
       <option value="">Todos los tipos</option>
@@ -277,7 +277,7 @@ input[type=checkbox]{width:15px;height:15px;cursor:pointer;accent-color:#1F3864}
         <select id="ev-prog" onchange="onProgChange()">
           <option value="">— Seleccionar —</option>
           <option>TFM</option><option>OPER</option><option>RRHH</option>
-          <option>Consulta Sincrónica</option><option>Desarrollo Curso</option><option>Hub de impacto</option>
+          <option>Consulta Sincrónica</option><option>Desarrollo Curso</option><option>Hub de impacto</option><option>MAO</option>
         </select>
       </div>
       <div class="fg" id="orient-group" style="display:none">
@@ -330,7 +330,7 @@ input[type=checkbox]{width:15px;height:15px;cursor:pointer;accent-color:#1F3864}
       <div class="fg"><label>Programa</label>
         <select id="aop-prog" onchange="renderPendientes()">
           <option value="">Todos</option><option>TFM</option><option>OPER</option><option>RRHH</option>
-          <option>Consulta Sincrónica</option><option>Desarrollo Curso</option><option>Hub de impacto</option>
+          <option>Consulta Sincrónica</option><option>Desarrollo Curso</option><option>Hub de impacto</option><option>MAO</option>
         </select>
       </div>
       <div class="fg"><label>Tipo</label>
@@ -607,9 +607,9 @@ let DATA={registro:[],ops:[],pagos:[],sueldos:[]};
 let editIdx={ev:undefined,op:undefined,pg:undefined};
 let chartInstance=null;
 let chartTipo="Matrícula";
-const VALOR_AUTO={TFM:40,OPER:2.5,RRHH:10,"Consulta Sincrónica":15};
-const PROGRAMAS=["TFM","OPER","RRHH","Consulta Sincrónica","Desarrollo Curso","Hub de impacto"];
-const PROG_COLORS={"TFM":"#185FA5","OPER":"#0F6E56","RRHH":"#7D6608","Consulta Sincrónica":"#993C1D","Desarrollo Curso":"#660066","Hub de impacto":"#0F5460"};
+const VALOR_AUTO={TFM:25,OPER:2.5,RRHH:2.5,"Consulta Sincrónica":15,MAO:2.5,"Hub de impacto":2.5};
+const PROGRAMAS=["TFM","OPER","RRHH","Consulta Sincrónica","Desarrollo Curso","Hub de impacto","MAO"];
+const PROG_COLORS={"TFM":"#185FA5","OPER":"#0F6E56","RRHH":"#7D6608","Consulta Sincrónica":"#993C1D","Desarrollo Curso":"#660066","Hub de impacto":"#0F5460","MAO":"#6B21A8"};
 const TB={"Matrícula":"bb","Egreso":"bg","Consulta Sincrónica":"ba","Desarrollo Curso":"bp"};
 const PB={"Pendiente":"br","En_OP":"ba","Pagado":"bg"};
 const EB={"Activo":"bg","Egresado":"bb","Abandonado":"bgr"};
@@ -801,7 +801,7 @@ function renderChart(){
       borderRadius:4,
     }];
   }else{
-    const progs=progFil?[progFil]:PROGRAMAS.filter(p=>p!=="Consulta Sincrónica"&&p!=="Desarrollo Curso"&&p!=="Hub de impacto");
+    const progs=progFil?[progFil]:PROGRAMAS.filter(p=>p!=="Consulta Sincrónica"&&p!=="Desarrollo Curso");
     datasets=progs.map(prog=>({
       label:prog,
       data:months.map(mes=>DATA.registro.filter(r=>r.Programa===prog&&r.Tipo_Evento===chartTipo&&getMes(r.Fecha_Evento)===mes).length),
@@ -966,12 +966,12 @@ function updateValorField(){
     lbl.textContent="Valor (ARS)";
     vf.removeAttribute("readonly");vf.style.background="";vf.style.color="";
     vf.placeholder=auto!==undefined?`Monto en pesos (ref. auto USD $${auto})`:"Monto en pesos";
-    if(prog!=="Desarrollo Curso"&&prog!=="Hub de impacto"&&auto!==undefined&&parseFloat(vf.value)===auto){
+    if(prog!=="Desarrollo Curso"&&auto!==undefined&&parseFloat(vf.value)===auto){
       vf.value="";
     }
   }else{
     lbl.textContent="Valor USD";
-    if(prog==="Desarrollo Curso"||prog==="Hub de impacto"){
+    if(prog==="Desarrollo Curso"){
       vf.removeAttribute("readonly");vf.style.background="";vf.style.color="";vf.placeholder="Ingresar monto";
     }else{
       vf.setAttribute("readonly","readonly");vf.style.background="#f7f7f7";vf.style.color="#999";vf.placeholder="Automático";
@@ -1017,8 +1017,9 @@ function editEvento(i){
   const rawFecha=String(r.Fecha_Evento||"");
   const isoMatch=rawFecha.match(/^(\d{4}-\d{2}-\d{2})/);
   document.getElementById("ev-fecha").value=isoMatch?isoMatch[1]:rawFecha;
-  if(r.Programa==="Desarrollo Curso"||r.Programa==="Hub de impacto") document.getElementById("ev-valor").value=r.Valor_USD||"";
   document.getElementById("ev-moneda").value=r.Moneda||"USD";onMonedaChange();
+  // Restaurar el valor real del registro (no el auto) para no pisar datos existentes
+  if((r.Moneda||"USD")==="USD") document.getElementById("ev-valor").value=r.Valor_USD||"";
   if((r.Moneda||"USD")==="ARS"){
     document.getElementById("ev-tc").value=r.TC_USD||"";
     const usd=parseFloat(r.Valor_USD)||0,tc=parseFloat(r.TC_USD)||0;
